@@ -7,7 +7,20 @@ output: html_notebook
 
 ### Read data and data management
 
+We first import data into R.
+
 #### Merging datafiles
+
+We merge the 'paradata' file containing all sampled units with the 'survey responses' file.
+In a real situation, there would also be a 'survey frame' dataset. This would be a third data file
+from which the sample was selected. Ideally, the 'survey frame' would include all units from the 
+population.
+
+#### Filter variables 
+
+We filter the variables that will be used for this example.
+
+
 
 ### Exploring the dataset
 
@@ -17,9 +30,10 @@ output: html_notebook
 
 #### Variables of interest
 
-#### 
+#### Covariates
 
+#### Auxiliary data
 
 ```{r}
-plot(cars)
+
 ```
