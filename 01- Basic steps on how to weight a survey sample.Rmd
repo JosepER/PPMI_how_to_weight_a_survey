@@ -1,0 +1,25 @@
+---
+title: "(Very) basic steps on how to weight a survey sample"
+subtitle: "An explained example with R code"
+author: "JosepER"
+output: html_notebook
+---
+
+### Read data and data management
+
+#### Merging datafiles
+
+### Exploring the dataset
+
+#### Paradata variables
+
+#### Survey responses
+
+#### Variables of interest
+
+#### 
+
+
+```{r}
+plot(cars)
+```
