@@ -5,18 +5,28 @@ author: "JosepER"
 output: html_notebook
 ---
 
+```{r}
+library(magrittr)
+library(tidyverse)
+```
+
+
 ## Introduction
 
 ### Note and bibliography 
 
-This is a short guide that shows to weight a survey. It is intended to be a practical document and
-intentionally avoids explaining complex or advanced methods. For more information you can check the 
-following introductory texts:
+This is a short guide that shows to weight a survey. Please keep in mind that
+there are many different ways of weighting a survey. This guide intends to be a practical document and
+intentionally avoids explaining complex or advanced methods. Instead, I aim at providing 
+a way of weighting with some variations that depend on the data available.
+
+For more information you can check the following introductory texts:
 
   * Valliant et al (2013) *Practical Tools for Designing and Weighting Survey Samples*. New York: Springer Science+Business Media.
   * Lohr (2009) *Sampling: Design and Analysis*. 2nd Edition. Boston: Books/Cole.
   
 And the book accompaining the R 'survey' package:  
+
   * Lumley (2010) *Complex Surveys: A Guide to Analysis Using R*. New Jersey: John Wiley & Sons Inc.
 
 It is important to note that this guide focuses on surveys based on 'probability sample'.
@@ -28,9 +38,15 @@ are diverse, more complex and usually rely on statistical modelling.
 
 Weighting is done to reduce survey bias. There are four basic steps in weighting. These are:
 
-1. Computation of base/design weights.
-2. 
+1. Base/design weights.
+2. Non-response weights.
+3. Use of auxiliary data/calibration.
+4. Analysis of weight variability/trimming.
 
+The first step consists on computing weights to take into account the differences of units in the probability of being sampled.
+'Being sampled' means being selected from the survey frame (i.e. the list of all units) to be approached for a survey response.
+This step can be skipped if all units in the survey frame have the same probability of being sampled. This happens when all
+units in the survey frame are approached for the sample or when 
 
 
 
