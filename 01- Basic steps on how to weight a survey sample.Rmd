@@ -5,7 +5,8 @@ author: "JosepER"
 output: html_notebook
 ---
 
-```{r}
+```{r echo=FALSE}
+library(foreign)
 library(magrittr)
 library(tidyverse)
 ```
@@ -57,27 +58,67 @@ profile of sampled units had higher propensity to reply than another and these p
 In this step, we need to estimate the probability of response using information available for both respondents and non-respondents. Non-response adjustment is not needed
 if all sampled units responded to the survey.
 
-The third step consists on adjusting our weights so some of our 
+The third step consists on adjusting our weights using available information about total population estimates. Note that this is different from the kind of data needed in non-response adjustment (second step). Here we need auxiliary data which tells us information (i.e. estimates such as proportions, means, sums, counts) about the statistical population. The same variables should be available from our respondents but here we don't need information about non-respondents.
+
+The last step is to check the variablity in our computed weights. High variation in weights can lead to some observations having too much importance in our sample. Even if weights reduce bias, they might largely inflate variance of estimates. Therefore, some survey practitioners worry about dealing with highly unequal weights.
 
 
-### Read data and data management
+## Read data and data management
+
+```{r, echo=FALSE, warning=FALSE}
+
+sample.data <- read.spss("data/ESS7SDDFe1_1.sav", to.data.frame = T)  %>%
+  filter(cntry == "Germany")
+
+paradata <- read.spss("data/ess7CFe02_1.sav", to.data.frame = T) %>%
+  filter(cntry == "Germany") 
+
+responses <- read.spss("data/ESS7e02_1.sav", to.data.frame = T) %>%
+  filter(cntry == "Germany") 
+
+sample.data %<>%
+  select(cntry, idno, psu, domain, stratify, prob)
+
+paradata %<>%
+  select(idno, cntry, typesamp, age_su, gndr_su, defectcf, interva, telnum,
+         resulb1:resulb80,
+         outnic1:outnic80,
+         agea_1:agea_4,
+         gendera1:gendera4,
+         type, access, physa, littera, vandaa, reconva)
+
+
+# Compute final result!
+
+# Recode age of refuser in only one variable.
+
+
+# This should be split
+
+paradata %<>% 
+  left_join(responses, by = "idno")
+
+View(paradata)
+
+```
+
 
 We first import data into R.
 
-#### Merging datafiles
+### Merging datafiles
 
 We merge the 'paradata' file containing all sampled units with the 'survey responses' file.
 In a real situation, there would also be a 'survey frame' dataset. This would be a third data file
 from which the sample was selected. Ideally, the 'survey frame' would include all units from the 
 population.
 
-#### Filter variables 
+### Filter variables 
 
-We filter the variables that will be used for this example.
+We filter the variables that will be used for this example. (we can proably do this directly while importing the data)
 
 
 
-### Exploring the dataset
+## Exploring and presenting the dataset
 
 #### Paradata variables
 
@@ -89,6 +130,14 @@ We filter the variables that will be used for this example.
 
 #### Auxiliary data
 
-```{r}
+## Step 1: Design weights
 
-```
+## Step 2: Non-response weights
+
+## Step 3: Use of auxiliary data
+
+## Step 4: Analysis of weight variability
+
+## Computing an estimate
+
+
