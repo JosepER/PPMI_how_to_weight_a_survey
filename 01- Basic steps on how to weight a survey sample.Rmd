@@ -5,6 +5,31 @@ author: "JosepER"
 output: html_notebook
 ---
 
+## Introduction
+
+### Note and bibliography 
+
+This is a short guide that shows to weight a survey. It is intended to be a practical document and
+intentionally avoids explaining complex or advanced methods. For more information you can check the 
+following introductory texts:
+
+  * Valliant et al (2013) *Practical Tools for Designing and Weighting Survey Samples*. New York: Springer Science+Business Media.
+  * Lohr (2009) *Sampling: Design and Analysis*. 2nd Edition. Boston: Books/Cole.
+  
+And the book accompaining the R 'survey' package:  
+  * Lumley (2010) *Complex Surveys: A Guide to Analysis Using R*. New Jersey: John Wiley & Sons Inc.
+
+It is important to note that this guide focuses on surveys based on 'probability sample'.
+These are surveys where all units in our statistical population have a chance of being selected
+and the probability of selection is known to the researcher. 'Non-probability sample' methods
+are diverse, more complex and usually rely on statistical modelling. 
+
+### Basic steps in weighting a survey
+
+Weighting is done to reduce survey bias. 
+
+
+
 ### Read data and data management
 
 We first import data into R.
