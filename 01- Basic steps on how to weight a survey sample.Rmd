@@ -36,7 +36,9 @@ are diverse, more complex and usually rely on statistical modelling.
 
 ### Basic steps in weighting a survey
 
-Weighting is done to reduce survey bias. There are four basic steps in weighting. These are:
+Weighting is done to reduce survey bias. Briefly explained, weighting consists on making our sample of survey respondents (more) representative
+of our statistical population. By statistical population I mean all those units for which we want to compute estimates.
+There are four basic steps in weighting. These are:
 
 1. Base/design weights.
 2. Non-response weights.
@@ -45,10 +47,17 @@ Weighting is done to reduce survey bias. There are four basic steps in weighting
 
 The first step consists on computing weights to take into account the differences of units in the probability of being sampled.
 'Being sampled' means being selected from the survey frame (i.e. the list of all units) to be approached for a survey response.
-This step can be skipped if all units in the survey frame have the same probability of being sampled. This happens when all
-units in the survey frame are approached for the sample or when 
+This step can be skipped if all units in the survey frame have the same probability of being sampled. This happens, for example
+1) when all units in the survey frame are approached for the sample or; 2) when the sampling design corresponds to either 
+'simple random sampling without replacement' or 'stratified random sampling with replacement' and the distribution of sampled units across
+stratums is proportional to the number of units in each stratum. These are called 'self-weighted' surveys. 
 
+Second, we need to adjust our responses by the differences in probabilities of sampled units to reply to our survey. Our estimates would be biased if some
+profile of sampled units had higher propensity to reply than another and these profiles had differences in the dependent variables (i.e. our variables of interest).
+In this step, we need to estimate the probability of response using information available for both respondents and non-respondents. Non-response adjustment is not needed
+if all sampled units responded to the survey.
 
+The third step consists on adjusting our weights so some of our 
 
 
 ### Read data and data management
