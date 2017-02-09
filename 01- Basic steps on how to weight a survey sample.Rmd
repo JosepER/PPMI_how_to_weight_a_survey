@@ -87,6 +87,8 @@ responses <- read.spss("data/ESS7e02_1.sav", to.data.frame = T) %>%
 
 Then we select the variables we are going to use in our analysis.
 
+
+
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 sample.data %<>%
@@ -100,16 +102,29 @@ paradata %<>%
          resulb1:resulb80,
          outnic1:outnic80)
 
+
+
+resp.y <- c("cgtsmke", "cgtsday",
+         "alcfreq", "alcwkdy", "alcwknd")
+resp.x <- c("vote", "prtvtbgb",
+            "prtclbgb", "")
+
+resp.id <- 
+
+  which(names(responses) %in% c()
+      
 responses %<>%
   select(idno, cntry, 
          vote, prtvtbgb,
          prtclbgb, prtdgcl,
          ctzcntr, ctzshipc,
-         brncntr,cntrbrthc,
+         brncntr,cntbrthc,
          cgtsmke, cgtsday,
          alcfreq, alcwkdy, alcwknd,
          gndr, agea, edulvlb, edubgb1,
          pdwrk, edctn, uempla, uempli, rtrd)
+
+attributes(responses)$variable.labels <- NULL
 
 ```
 
