@@ -5,10 +5,11 @@ author: "JosepER"
 output: html_notebook
 ---
 
-```{r echo=FALSE}
+```{r echo=TRUE, warning=FALSE, message=FALSE}
 library(foreign)
 library(magrittr)
 library(tidyverse)
+options(scipen = 9999)
 ```
 
 
@@ -65,45 +66,55 @@ The last step is to check the variablity in our computed weights. High variation
 
 ## Read data and data management
 
-```{r, echo=FALSE, warning=FALSE}
+#### Import data
+
+We first import data into R.
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
 
 sample.data <- read.spss("data/ESS7SDDFe1_1.sav", to.data.frame = T)  %>%
-  filter(cntry == "Germany")
+  filter(cntry == "United Kingdom")
 
 paradata <- read.spss("data/ess7CFe02_1.sav", to.data.frame = T) %>%
-  filter(cntry == "Germany") 
+  filter(cntry == "United Kingdom") 
 
 responses <- read.spss("data/ESS7e02_1.sav", to.data.frame = T) %>%
-  filter(cntry == "Germany") 
+  filter(cntry == "United Kingdom") 
+
+```
+
+#### Select variables
+
+Then we select the variables we are going to use in our analysis.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 sample.data %<>%
   select(cntry, idno, psu, domain, stratify, prob)
 
 paradata %<>%
   select(idno, cntry, typesamp, age_su, gndr_su, defectcf, interva, telnum,
-         resulb1:resulb80,
-         outnic1:outnic80,
          agea_1:agea_4,
          gendera1:gendera4,
-         type, access, physa, littera, vandaa, reconva)
+         type, access, physa, littera, vandaa, reconva,
+         resulb1:resulb80,
+         outnic1:outnic80)
 
-
-# Compute final result!
-
-# Recode age of refuser in only one variable.
-
-
-# This should be split
-
-paradata %<>% 
-  left_join(responses, by = "idno")
-
-View(paradata)
+responses %<>%
+  select(idno, cntry, 
+         vote, prtvtbgb,
+         prtclbgb, prtdgcl,
+         ctzcntr, ctzshipc,
+         brncntr,cntrbrthc,
+         cgtsmke, cgtsday,
+         alcfreq, alcwkdy, alcwknd,
+         gndr, agea, edulvlb, edubgb1,
+         pdwrk, edctn, uempla, uempli, rtrd)
 
 ```
 
 
-We first import data into R.
+
 
 ### Merging datafiles
 
