@@ -5,7 +5,7 @@ author: "JosepER"
 output: html_notebook
 ---
 
-```{r echo=TRUE, warning=FALSE, message=FALSE}
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 library(foreign)
 library(magrittr)
 library(tidyverse)
@@ -85,30 +85,18 @@ responses <- read.spss("data/ESS7e02_1.sav", to.data.frame = T) %>%
 
 #### Select variables
 
-Then we select the variables we are going to use in our analysis.
-
-
+We select the variables we are going to use in our analysis. Here we just
+write the names of the variables we intend to use.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-attributes(responses)$variable.labels %>% 
-  cbind(names(responses),.) %>% 
-  as_data_frame %>% 
-  write_csv("interim_output/variable_labels.csv")
+vars.sample.data <- c("cntry", "idno", "psu", "domain", "stratify", "prob")
 
+vars.paradata <- c("idno", "cntry", "typesamp", "age_su", "gndr_su", "defectcf",
+                   "interva", "telnum", "agea_1", "gendera1", "type", "access", 
+                   "physa", "littera", "vandaa", "reconva")
 
-sample.data %<>%
-  select(cntry, idno, psu, domain, stratify, prob)
-
-paradata %<>%
-  select(idno, cntry, typesamp, age_su, gndr_su, defectcf, interva, telnum,
-         agea_1:agea_4,
-         gendera1:gendera4,
-         type, access, physa, littera, vandaa, reconva,
-         resulb1:resulb80,
-         outnic1:outnic80)
-
-
+resp.id <- c("idno", "cntry")
 
 resp.y <- c("cgtsmke", "cgtsday",
          "alcfreq", "alcwkdy", "alcwknd")
@@ -119,25 +107,76 @@ resp.x <- c("vote", "prtvtbgb",
          "gndr", "agea", "edulvlb", "edubgb1",
          "pdwrk", "edctn", "uempla", "uempli", "rtrd")
 
-resp.id <- 
+```
 
-  which(names(responses) %in% c()
-      
-responses %<>%
-  select(idno, cntry, 
-         vote, prtvtbgb,
-         prtclbgb, prtdgcl,
-         ctzcntr, ctzshipc,
-         brncntr,cntbrthc,
-         cgtsmke, cgtsday,
-         alcfreq, alcwkdy, alcwknd,
-         gndr, agea, edulvlb, edubgb1,
-         pdwrk, edctn, uempla, uempli, rtrd)
+Then we keep the variable labels (although these are not common in R).
 
-attributes(responses)$variable.labels <- NULL
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+selected.labels.sample.data <- attributes(sample.data)$variable.labels[which(names(sample.data) %in% vars.sample.data)]
+
+selected.labels.paradata <- attributes(paradata)$variable.labels[which(names(paradata) %in% vars.paradata)]
+
+selected.labels.responses <- attributes(responses)$variable.labels[which(names(responses) %in% c(resp.id, resp.y, resp.x))] 
+
 
 ```
 
+Now we do the selection of variables from the three data sets. 
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+attributes(responses)$variable.labels %>% 
+  cbind(names(responses),.) %>% 
+  as_data_frame %>% 
+  write_csv("interim_output/variable_labels.csv")
+
+sample.data %<>%
+  select(cntry, idno, psu, domain, stratify, prob)
+
+paradata %<>%
+  select(idno, cntry, typesamp, age_su, gndr_su, defectcf, interva, telnum,
+         agea_1,
+         gendera1,
+         type, access, physa, littera, vandaa, reconva) 
+
+# Note: There are other variables that could be selected from paradata (i.e. result of visits, refusals, etc.)
+
+resp.id <- c("idno", "cntry")
+
+resp.y <- c("cgtsmke", "cgtsday",
+         "alcfreq", "alcwkdy", "alcwknd")
+resp.x <- c("vote", "prtvtbgb",
+            "prtclbgb", "prtdgcl",
+            "ctzcntr", "ctzshipc",
+         "brncntr","cntbrthc",
+         "gndr", "agea", "edulvlb", "edubgb1",
+         "pdwrk", "edctn", "uempla", "uempli", "rtrd")
+
+resp.var.num <- which(names(responses) %in% c(resp.id, resp.y, resp.x))
+
+resp.selected.labels <- attributes(responses)$variable.labels[resp.var.num] 
+
+responses <- responses[c(resp.id, resp.x, resp.y)]
+
+attributes(responses)$variable.labels <- resp.selected.labels
+
+rm(resp.var.num)
+
+```
+
+#### Recoding
+
+We do some recoding for selected variables.
+
+```{r}
+
+paradata %>% View()
+  
+  
+  
+```
 
 
 
@@ -147,6 +186,16 @@ We merge the 'paradata' file containing all sampled units with the 'survey respo
 In a real situation, there would also be a 'survey frame' dataset. This would be a third data file
 from which the sample was selected. Ideally, the 'survey frame' would include all units from the 
 population.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+data <- paradata %>%
+  left_join(sample.data, by = "idno") %>%
+  left_join(responses, by = "idno")
+
+```
+
+
 
 ### Filter variables 
 
