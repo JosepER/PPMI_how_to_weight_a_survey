@@ -119,50 +119,44 @@ selected.labels.paradata <- attributes(paradata)$variable.labels[which(names(par
 
 selected.labels.responses <- attributes(responses)$variable.labels[which(names(responses) %in% c(resp.id, resp.y, resp.x))] 
 
-
-```
-
-Now we do the selection of variables from the three data sets. 
-
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
 attributes(responses)$variable.labels %>% 
   cbind(names(responses),.) %>% 
   as_data_frame %>% 
   write_csv("interim_output/variable_labels.csv")
 
-sample.data %<>%
-  select(cntry, idno, psu, domain, stratify, prob)
+```
+
+Now we do the selection of variables from the three data sets. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+sample.data %<>% 
+  .[vars.sample.data]
 
 paradata %<>%
-  select(idno, cntry, typesamp, age_su, gndr_su, defectcf, interva, telnum,
-         agea_1,
-         gendera1,
-         type, access, physa, littera, vandaa, reconva) 
+  .[vars.paradata]
+
+responses %<>%
+  .[c(resp.id, resp.y, resp.x)]
+
+```
+
+And we add the labels we kept before.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 # Note: There are other variables that could be selected from paradata (i.e. result of visits, refusals, etc.)
 
-resp.id <- c("idno", "cntry")
+attributes(sample.data)$variable.labels <- selected.labels.sample.data
 
-resp.y <- c("cgtsmke", "cgtsday",
-         "alcfreq", "alcwkdy", "alcwknd")
-resp.x <- c("vote", "prtvtbgb",
-            "prtclbgb", "prtdgcl",
-            "ctzcntr", "ctzshipc",
-         "brncntr","cntbrthc",
-         "gndr", "agea", "edulvlb", "edubgb1",
-         "pdwrk", "edctn", "uempla", "uempli", "rtrd")
+attributes(paradata)$variable.labels <- selected.labels.paradata
 
-resp.var.num <- which(names(responses) %in% c(resp.id, resp.y, resp.x))
+attributes(responses)$variable.labels <- selected.labels.responses
 
-resp.selected.labels <- attributes(responses)$variable.labels[resp.var.num] 
 
-responses <- responses[c(resp.id, resp.x, resp.y)]
-
-attributes(responses)$variable.labels <- resp.selected.labels
-
-rm(resp.var.num)
+rm(selected.labels.sample.data,
+   selected.labels.paradata,
+   selected.labels.responses)
 
 ```
 
@@ -172,7 +166,7 @@ We do some recoding for selected variables.
 
 ```{r}
 
-paradata %>% View()
+#paradata %>% View()
   
   
   
@@ -189,9 +183,9 @@ population.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-data <- paradata %>%
-  left_join(sample.data, by = "idno") %>%
-  left_join(responses, by = "idno")
+#data <- paradata %>%
+ # left_join(sample.data, by = "idno") %>%
+  #left_join(responses, by = "idno")
 
 ```
 
