@@ -109,7 +109,7 @@ resp.x <- c("vote", "prtvtbgb",
             "prtclbgb", "prtdgcl",
             "ctzcntr", "ctzshipc",
          "brncntr","cntbrthc",
-         "gndr", "agea", "edulvlb", "edubgb1",
+         "gndr", "agea", "eisced",
          "pdwrk", "edctn", "uempla", "uempli", "rtrd")
 
 ```
@@ -147,12 +147,6 @@ responses %<>%
 ```
 
 
-
-#### Recoding
-
-We don't need to recode variables. Do we?
-
-
 ### Merging datafiles
 
 We merge the 'paradata' file containing all sampled units with the 'survey responses' file.
@@ -167,7 +161,9 @@ data <- paradata %>%
   left_join(responses, by = "idno") %>%
   arrange(interva)
 
-
+rm(paradata,
+   sample.data,
+   responses)
 
 ```
 
@@ -182,9 +178,64 @@ attributes(data)$variable.labels <- c(selected.labels.paradata, selected.labels.
 ```
 
 
+### Recoding
+
+Recoding daily cigarette consumption. All those that responded that don't smoke should have a 0.
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data$cgtsday[data$cgtsmke %in% c("I have never smoked",
+                                 "I don't smoke now but I used to",
+                                 "I have only smoked a few times")] <- 0
+
+data$alcohol_day <- NA 
+data$alcohol_day <- (data$alcwkdy * 5 + data$alcwknd *2)/7 
+
+data$alcohol_day[which(data$alcfreq == "Several times a week")] <- data$alcohol_day / 2.5
+data$alcohol_day[which(data$alcfreq == "Once a week")] <- data$alcohol_day/7
+data$alcohol_day[which(data$alcfreq == "2-3 times a month")] <- data$alcohol_day/10
+data$alcohol_day[which(data$alcfreq == "Once a month")] <- data$alcohol_day/30
+data$alcohol_day[which(data$alcfreq == "Less than once a month")] <- data$alcohol_day/50
+data$alcohol_day[which(data$alcfreq == "Never")] <- 0
+
+resp.y <- c(resp.y, "alcohol_day")
+```
+
+
 ## Exploring and presenting the dataset
 
+The merged data set contains sampled *respondents and non-respondents*. It contains a total of `r dim(data)[[1]]` units and `r dim(data)[[2]]` variables.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+dim(data)
+```
+
+This is how the dataset looks like:
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+head(data, 10)
+```
+
+And this is a list of the variables it contains (with their labels). 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+cbind(names(data),attributes(data)$variable.labels) %>% 
+  as_data_frame() %>%
+  print()
+```
+
+Here I will try to give population estimates for cigarette and alcohol consumption in the UK. These will be our 'y' variables. The idea is to first give descriptives of the distribution of these two variables such as quantiles and mean. Then I will do a simple extrapolation and compute total cigarette and alcohol consumption for the whole UK.
+
+These are our y variables:
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data[resp.y]
+```
+
+*cgtsday* and *alcohol_day* measure the average number of cigarettes and grams of alcohol consumed per day. *Alcohol_day* was computed in the *Recoding* section.
+
 #### Paradata variables
+
+Our survey also has variables 
+
 
 #### Survey responses
 
