@@ -110,7 +110,8 @@ resp.x <- c("vote", "prtvtbgb",
             "ctzcntr", "ctzshipc",
          "brncntr","cntbrthc",
          "gndr", "agea", "eisced",
-         "pdwrk", "edctn", "uempla", "uempli", "rtrd")
+         "pdwrk", "edctn", "uempla", "uempli", "rtrd",
+         "wrkctra", "hinctnta")
 
 ```
 
@@ -263,7 +264,26 @@ data[vars.paradata]
 
 #### Survey responses
 
-Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. 
+Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. We will try to use these variables to calibrate the survey in __Use of auxiliary data/calibration__ step. Some of these variables are:
+
+* __vote__: Voted last national election (Yes/No)
+* __prtvtbgb__: Party voted for in last national election
+* __prtclbgb__: Which party feel closer to, United Kingdom
+* __prtdgcl__: How close does the repondent feel to the party party from 'prtclbgb'
+* __ctzcntr__: Has UK citizenship (Yes/No)
+* __ctzshipc__: Citizenship of respondent
+* __brncntr__:Respondent born in the UK
+* __cntbrthc__: Respondent country of birth
+* __gndr__: Gender of respondent
+* __agea__: Calculated age of respondent
+* __eisced__: Highest level of education of respondent
+* __pdwrk__: In paid work
+* __edctn__: In education
+* __uempla__: In unemployment, actively looking for a job
+* __uempli__: In unemployment, not actively looking for a job
+* __rtrd__: Retired
+* __wrkctra__: Employment contract unlimited or limited duration
+* __hinctnta__: Household's total net income, all sources
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -278,15 +298,22 @@ This is how the whole dataset looks like:
 head(data, 10)
 ```
 
+### Descriptives
 
+(It would be a good practice to give descriptives for the main variables.)
 
-#### Variables of interest
+##### Variables of interest
 
-#### Covariates
+##### Covariates
 
-#### Auxiliary data
+##### Auxiliary data
+
 
 ## Step 1: Design weights
+
+The first step in weighing is to take into account the differences in the probability of being selected for the sample. The European Social Survey (ESS) did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user
+postcode address file (PAF), merging smaller sectors.The probability of each PAF of being selected was proportional to the number of addresses it contained. 
+
 
 ## Step 2: Non-response weights
 
