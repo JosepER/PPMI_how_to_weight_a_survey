@@ -42,10 +42,10 @@ Weighting is done to reduce survey bias. Briefly explained, weighting consists o
 of our statistical population. By statistical population I mean all those units for which we want to compute estimates.
 There are four basic steps in weighting. These are:
 
-1. Base/design weights.
-2. Non-response weights.
-3. Use of auxiliary data/calibration.
-4. Analysis of weight variability/trimming.
+1. __Base/design weights__
+2. __Non-response weights__
+3. __Use of auxiliary data/calibration__
+4. __Analysis of weight variability/trimming__
 
 The first step consists on computing weights to take into account the differences of units in the probability of being sampled.
 'Being sampled' means being selected from the survey frame (i.e. the list of all units) to be approached for a survey response.
@@ -94,9 +94,9 @@ vars.sample.data <- c("idno", "psu", "prob")
 
 # Note: In sample file, domain and stratify variables could be useful for other countries.
 
-vars.paradata <- c("idno", "typesamp", "defectcf","interva", "telnum", 
+vars.paradata <- c("idno", "typesamp", "interva", "telnum", 
                    "agea_1", "gendera1", "type", "access", 
-                   "physa", "littera", "vandaa", "reconva")
+                   "physa", "littera", "vandaa")
 
 # Note: In paradata file, age of sampled unit could be useful for other countries.    
 
@@ -202,19 +202,16 @@ resp.y <- c(resp.y, "alcohol_day")
 
 ## Exploring and presenting the dataset
 
-The merged data set contains sampled *respondents and non-respondents*. It contains a total of `r dim(data)[[1]]` units and `r dim(data)[[2]]` variables.
+The merged data set contains sampled **respondents and non-respondents**. It contains a total of `r dim(data)[[1]]` units and `r dim(data)[[2]]` variables.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 dim(data)
 ```
 
-This is how the dataset looks like:
+The data set contains information about `r nrow(data %>% filter(interva == "Complete and valid interview related to CF"))` respondents and `r nrow(data %>% filter(interva != "Complete and valid interview related to CF"))` non-respondents.
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-head(data, 10)
-```
 
-And this is a list of the variables it contains (with their labels). 
+And this is a list of the variables it contains (with their labels). **idno** is the individual identification variable.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 cbind(names(data),attributes(data)$variable.labels) %>% 
@@ -222,22 +219,66 @@ cbind(names(data),attributes(data)$variable.labels) %>%
   print()
 ```
 
-Here I will try to give population estimates for cigarette and alcohol consumption in the UK. These will be our 'y' variables. The idea is to first give descriptives of the distribution of these two variables such as quantiles and mean. Then I will do a simple extrapolation and compute total cigarette and alcohol consumption for the whole UK.
+Here I will try to give population estimates for cigarette and alcohol consumption in the UK. These will be our 'y' variables or variables of interest. The information for these variables was obtained from survey responses. The idea is to first give descriptives of the distribution of these two variables such as quantiles and mean. Then I will do a simple extrapolation and compute total cigarette and alcohol consumption for the whole UK.
 
 These are our y variables:
+
+* __cgtsday__: Number of cigarettes smoked on a typical day.
+* __alcohol_day__: Grams of alcohol ingested on a daily basis. Computed in the *Recoding* section by weighting the amount of alcohol drank last time during weekdays and weekend.
+
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 data[resp.y]
 ```
 
-*cgtsday* and *alcohol_day* measure the average number of cigarettes and grams of alcohol consumed per day. *Alcohol_day* was computed in the *Recoding* section.
 
 #### Paradata variables
 
-Our survey also has variables 
+Our survey contains variables which give information about the data collection process. First, we have some variables that come from the 'sample data (SDDF)' file. These contain info about the 'primary sampling unit' and the probability of each unit of being selected in the sample. These two variables are only available for respondents. In most projects we would have to compute the probability of being sampled by ourselves.   
+
+* __psu__: This variable includes information on the primary sampling unit (PSU). In the UK this refered to the 'postcode address file'.
+* __prob__: Probability of being included in the sample (i.e. approached for survey).
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data[vars.sample.data]
+```
+
+The dataset also contains variables for all sampled units (i.e. respondents and non-respondents). These give information  about the events that occurred during the data collection process. We will use these variables as covariates during the computation of **Non-response weights** in step two.  
+
+* __typesamp__: Refers to the type of unit sampled. In the UK, all units sampled were addresses. In other countries, households and individual people were sampled.   
+* __interva__: Shows the final outcome of the contact. In the UK sample, only codes 'Complete ...' and 'No interview ...' were used.
+* __telnum__: The interviewed person gave his/her mobile phone to the interviewer.
+* __agea_1__:  Interviewer estimation of age of respondent or household member who refuses to give the interview.
+* __gendera1__: Interviewer estimation of gender of respondent or household member who refuses to give the interview.
+* __type__: Type of house sampled unit lives in. 
+* __access__: Entry phone or locked gate/door before reaching respondent's individual door.
+* __physa__: Interviewer assessment overall physical condition building/house.
+* __littera__: Interviewer assessment of amount of litter and rubbish in the immediate vicinity.
+* __vandaa__: Interviewer assessment of amount of vandalism and graffiti in the immediate vicinity.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data[vars.paradata] 
+```
 
 
 #### Survey responses
+
+Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. 
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data[c(resp.id, resp.x)] 
+```
+
+
+This is how the whole dataset looks like:
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+head(data, 10)
+```
+
+
 
 #### Variables of interest
 
