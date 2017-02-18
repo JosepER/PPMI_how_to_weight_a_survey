@@ -6,6 +6,7 @@ output: html_notebook
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(ggplot2)
 library(foreign)
 library(magrittr)
 library(tidyverse)
@@ -117,7 +118,7 @@ selected.labels.sample.data <- attributes(sample.data)$variable.labels[which(nam
 
 selected.labels.paradata <- attributes(paradata)$variable.labels[which(names(paradata) %in% vars.paradata)]
 
-selected.labels.responses <- attributes(responses)$variable.labels[which(names(responses) %in% c(resp.id, resp.y, resp.x))] 
+selected.labels.responses <- attributes(responses)$variable.labels[which(names(responses) %in% c(resp.y, resp.x))] 
 
 attributes(responses)$variable.labels %>% 
   cbind(names(responses),.) %>% 
@@ -168,7 +169,7 @@ And we add the labels we kept before.
 
 # Note: There are other variables that could be selected from paradata (i.e. result of visits, refusals, etc.)
 
-attributes(data)$variable.labels <- c(selected.labels.paradata, selected.labels.sample.data,
+attributes(data)$variable.labels <- c(selected.labels.paradata, selected.labels.sample.data[!names(selected.labels.sample.data) %in% "idno"],
                                       selected.labels.responses)
 ```
 
@@ -219,7 +220,7 @@ Here I will try to give population estimates for cigarette and alcohol consumpti
 These are our y variables:
 
 * __cgtsday__: Number of cigarettes smoked on a typical day.
-* __alcohol_day__: Grams of alcohol ingested on a daily basis. Computed in the *Recoding* section by weighting the amount of alcohol drank last time during weekdays and weekend.
+* __alcohol_day__: Grams of alcohol ingested on a daily basis. Computed in the *Recoding* section from the amount of alcohol drank last time during weekdays and weekend.
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -306,7 +307,31 @@ head(data, 10)
 ## Step 1: Design weights
 
 The first step in weighing is to take into account the differences in the probability of being selected for the sample. The European Social Survey (ESS) did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user
-postcode address file (PAF), merging smaller sectors.The probability of each PAF of being selected was proportional to the number of addresses it contained. 
+postcode address file (PAF), merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf) ). 
+
+This sampling design is most probably done because they had a list of addresses but not households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.
+
+Fortunately for us, the probablity of each respondent of being sampled was included in the ESS dataset. 
+
+We see that there are actually `r length(unique(data$prob))` unique sampling probabilities computed in the dataset.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+unique(sort(data$prob))
+
+```
+
+Their distribution is skewed to the left, with the vast majority of respondents having probability of `r sort(table(data$prob), decreasing = T)[[1]]` or `r sort(table(data$prob), decreasing = T)[[2]]`
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+ggplot(data, aes(x = prob)) +
+  geom_histogram()
+
+```
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+table(round(data$prob,8))
+```
 
 
 ## Step 2: Non-response weights
