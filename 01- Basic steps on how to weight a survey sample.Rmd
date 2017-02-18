@@ -104,7 +104,7 @@ resp.x <- c("vote", "prtvtbgb",
             "prtclbgb", "prtdgcl",
             "ctzcntr", "ctzshipc",
          "brncntr","cntbrthc",
-         "gndr", "agea", "eisced",
+         "gndr", "agea", "hhmmb","eisced",
          "pdwrk", "edctn", "uempla", "uempli", "rtrd",
          "wrkctra", "hinctnta")
 
@@ -320,10 +320,10 @@ unique(sort(data$prob))
 
 ```
 
-Their distribution is skewed to the left, with the vast majority of respondents having probability of `r sort(table(data$prob), decreasing = T)[[1]]` or `r sort(table(data$prob), decreasing = T)[[2]]`
+The vast majority of respondents had probability of `r sort(table(data$prob), decreasing = T)[[1]]` or `r sort(table(data$prob), decreasing = T)[[2]]`. This would mean that the most frequent probabilites of inclusion were of `r 1/round(sort(table(data$prob), decreasing = T)[[1]],0)` and `r 1/round(sort(table(data$prob), decreasing = T)[[2]],0)` respectively.
+We see a minority of around 15% of observations with smaller probabilities. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
 ggplot(data, aes(x = prob)) +
   geom_histogram()
 
@@ -332,6 +332,29 @@ ggplot(data, aes(x = prob)) +
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 table(round(data$prob,8))
 ```
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+data %>%
+  group_by(type) %>%
+  summarise(n = n(),
+    mean = mean(prob, na.rm = T)) %>%
+      arrange(desc(mean))
+
+```
+
+Plot to compare probabilities by number of people in household
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data %>%
+  filter(!is.na(hhmmb)) %>%
+  group_by(hhmmb) %>%
+  summarise(n = n(),
+    mean = mean(prob, na.rm = T)) %>%
+      arrange(desc(mean))
+
+```
+
 
 
 ## Step 2: Non-response weights
