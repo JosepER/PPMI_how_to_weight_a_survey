@@ -7,6 +7,7 @@ output: html_notebook
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 library(ggplot2)
+library(forcats)
 library(foreign)
 library(magrittr)
 library(tidyverse)
@@ -330,30 +331,43 @@ ggplot(data, aes(x = prob)) +
 ```
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-table(round(data$prob,8))
+table(round(data$prob*100,6))
 ```
+
+
+We see that 
+
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 data %>%
   group_by(type) %>%
   summarise(n = n(),
-    mean = mean(prob, na.rm = T)) %>%
-      arrange(desc(mean))
+    mean.prob.percentage = mean(prob, na.rm = T)*100) %>%
+      arrange(desc(mean.prob.percentage))
 
 ```
 
-Plot to compare probabilities by number of people in household
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data %<>%
+  mutate(hhmmb.factor = as.factor(hhmmb) %>% fct_recode(`+5` = "6",
+                                                        `+5` = "7",
+                                                        `+5` = "8"))
+
 data %>%
-  filter(!is.na(hhmmb)) %>%
-  group_by(hhmmb) %>%
+  filter(!is.na(hhmmb.factor)) %>%
+  group_by(hhmmb.factor) %>%
   summarise(n = n(),
-    mean = mean(prob, na.rm = T)) %>%
-      arrange(desc(mean))
+    mean.prob.percentage = mean(prob, na.rm = T)*100) %>%
+      arrange(desc(mean.prob.percentage))
 
 ```
+
+
+
+
+
 
 
 
