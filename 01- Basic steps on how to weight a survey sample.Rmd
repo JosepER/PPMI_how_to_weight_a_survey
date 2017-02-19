@@ -76,6 +76,8 @@ paradata <- read.spss("data/ess7CFe02_1.sav", to.data.frame = T) %>%
 responses <- read.spss("data/ESS7e02_1.sav", to.data.frame = T) %>%
   filter(cntry == "United Kingdom") 
 
+original.weights <- responses %>% select(idno ,dweight, pspwght, pweight)
+
 ```
 
 #### Select variables
@@ -408,14 +410,22 @@ A simple interpretation of base weights it 'the number of units in our populatio
 
 The sum of our computed weights in the ESS dataset with `r table(data$interva)[["Complete and valid interview related to CF"]]` respondents equals `r data %>%  summarise(sum.base.weights.ess.dataset = round(sum(base.weight, na.rm = T),0)) %>% .[["sum.base.weights.ess.dataset"]]`. Doing a very simple Extrapolation to include the `r table(data$interva)[["No interview for other reason"]]` non-respondents would give us a sum of weights equal to `r data %>%  summarise(sum.base.weights.ess.dataset = round(sum(base.weight, na.rm = T),0)) %>% .[["sum.base.weights.ess.dataset"]]* (nrow(data)/ table(data$interva)[["Complete and valid interview related to CF"]])`. This last figure would be much closer to the total UK population over 15. 
 
+It is a common practice for many researchers to scale the weights so that their sum equals the sample size (instead of the populatio size). This would be especially true when they do not know the sampling probabilities of some sampled units and when they plan to do post-stratification adjustments (see step 3). Scaled weights would equally adjust for differences in sampling probabilities. 
 
+Here we compute our scaled weights and we compare them with the ones given in the ESS dataset.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 data %>%
-  summarise(sum.base.weights.ess.dataset = sum(base.weight, na.rm = T))
+  filter(!is.na(base.weight)) %>% 
+  select(idno, base.weight) %>%
+  mutate(base.weight.scaled = base.weight/sum(base.weight, na.rm = T)*nrow(data[!is.na(data$prob),])) %>%
+  left_join(original.weights %>% select(idno, dweight),
+            by = "idno")
 
 ```
+
+As I mentioned before, base weights should sum up to the entire population from which the sample is drawn (it is not the case for the ESS) and 
 
 
 ## Step 2: Non-response weights
