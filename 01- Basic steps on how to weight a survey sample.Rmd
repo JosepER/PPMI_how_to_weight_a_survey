@@ -404,7 +404,18 @@ data %>%
 
 ```
 
-A simple interpretation of base weights it 'the number of units in our population that each unit in our sample represents'. There is a simple but **important test** that we should perform after computing base weights.
+A simple interpretation of base weights it 'the number of units in our population that each unit in our sample represents'. There is a simple but **important test** that we should perform after computing base weights. The sum of all base weights should be equal to the total number of units in our population. The ESS dataset for UK only included sampling probabilities for respondents (i.e. sampled units that responded to the survey!) but they did not include sampling probabilities of non-respondents.  I would guess that this is because sampling probability depends on information that is obtained from the interview (i.e. number of people in household, number of households in dwelling, etc.).  Not knowing the sampling probability for some sampled units is not an optimal situation. 
+
+The sum of our computed weights in the ESS dataset with `r table(data$interva)[["Complete and valid interview related to CF"]]` respondents equals `r data %>%  summarise(sum.base.weights.ess.dataset = sum(base.weight, na.rm = T)) %>% .[["sum.base.weights.ess.dataset"]]`. Doing a very simple Extrapolation to include the `r table(data$interva)[["No interview for other reason"]]` non-respondents would give us a sum of weights equal to `r data %>%  summarise(sum.base.weights.ess.dataset = sum(base.weight, na.rm = T)) %>% .[["sum.base.weights.ess.dataset"]]* (nrow(data)/ table(data$interva)[["Complete and valid interview related to CF"]])`
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+data %>%
+  summarise(sum.base.weights.ess.dataset = sum(base.weight, na.rm = T))
+
+```
 
 
 ## Step 2: Non-response weights
