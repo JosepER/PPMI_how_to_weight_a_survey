@@ -6,7 +6,6 @@ output: html_notebook
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-library(ggplot2)
 library(forcats)
 library(foreign)
 library(magrittr)
@@ -312,9 +311,25 @@ postcode address file (PAF), merging smaller sectors. The probability of each PA
 
 This sampling design is most probably done because they had a list of addresses but not households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.
 
-Fortunately for us, the probablity of each respondent of being sampled was included in the ESS dataset. 
+Fortunately for us, the probablity of each respondent of being sampled was included in the ESS dataset. In many projects, however, we will have to compute sampling probailities ourselves. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
 
-We see that there are actually `r length(unique(data$prob))` unique sampling probabilities computed in the dataset.
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+probabilities <- data %>%
+  summarise(min.probability = min(prob, na.rm = T),
+            max.probability = max(prob, na.rm = T)) %>%
+  as.vector()
+
+print(probabilities)
+
+if(probabilities$min.probability < 0){stop("Minimum probability of being sampled is smaller than 0. Review sampling probabilities before computing base weights.")}else if(probabilities$max.probability > 1){stop("Maximum probability of being sampled is larger than 1. Review sampling probabilities before computing base weights.")}
+
+rm(probabilities)
+
+```
+
+
+We see that there are actually `r length(unique(data$prob))` unique sampling probabilities computed in the dataset. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 unique(sort(data$prob))
@@ -364,11 +379,32 @@ data %>%
 
 ```
 
+The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d_{0}*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+data %<>%
+  mutate(base.weight = 1/prob)
+
+data %>%
+  select(prob, base.weight)
 
 
+```
 
+Here we compute the base weight from the probability given in the ESS database.   
 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
+data %<>%
+  mutate(base.weight = 1/prob)
+
+data %>%
+  select(prob, base.weight)
+
+```
+
+A simple interpretation of base weights it 'the number of units in our population that each unit in our sample represents'. There is a simple but **important test** that we should perform after computing base weights.
 
 
 ## Step 2: Non-response weights
