@@ -430,7 +430,7 @@ As I mentioned before, base weights should sum up to the entire population from 
 
 ## Step 2: Non-response weights
 
-The second basic step in weighting a survey is accounting for differences in the propensity to respond. 
+The second basic step in weighting a survey is accounting for differences in the propensity to respond. Imagine a situation in which a profile of sampled units had higher propensity to respond than another profile. Imagine as well that the characteristics of both profiles were associated to our y variables (here alcohol and cigarretes consumption). This would create a bias in our analyses. 
 
 ## Step 3: Use of auxiliary data
 
