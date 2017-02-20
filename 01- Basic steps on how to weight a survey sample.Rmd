@@ -412,7 +412,7 @@ The sum of our computed weights in the ESS dataset with `r table(data$interva)[[
 
 It is a common practice for many researchers to scale the weights so that their sum equals the sample size (instead of the populatio size). This would be especially true when they do not know the sampling probabilities of some sampled units and when they plan to do post-stratification adjustments (see step 3). Scaled weights would equally adjust for differences in sampling probabilities. 
 
-Here we compute our scaled weights and we compare them with the ones given in the ESS dataset.
+Here we compute our scaled weights and we compare them with the ones given in the ESS dataset. Here we see that our weights scaled (*base.weigth.scaled*) are almost equal to those computed in the ESS dataset (*dweigth*). The small differences are probably due to rounding error.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -425,10 +425,12 @@ data %>%
 
 ```
 
-As I mentioned before, base weights should sum up to the entire population from which the sample is drawn (it is not the case for the ESS) and 
+As I mentioned before, base weights should sum up to the entire population from which the sample is drawn or to the total number of respondents if scaled (as they did in the ESS).  
 
 
 ## Step 2: Non-response weights
+
+The second basic step in weighting a survey is accounting for differences in the propensity to respond. 
 
 ## Step 3: Use of auxiliary data
 
