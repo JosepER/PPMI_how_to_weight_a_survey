@@ -432,6 +432,10 @@ As I mentioned before, base weights should sum up to the entire population from 
 
 The second basic step in weighting a survey is accounting for differences in the propensity to respond. Imagine a situation in which a profile of sampled units had higher propensity to respond than another profile. Imagine as well that the characteristics of both profiles were associated to our y variables (here alcohol and cigarretes consumption). This would create a bias in our analyses. 
 
+If we compute the sample ourselves, we can also compute the probability of a unit of being sampled. Computing the probability of replying to the survey is, however, more challenging.  As we can not direclty observe the probability of a unit of replying to the survey, 
+
+
+
 ## Step 3: Use of auxiliary data
 
 ## Step 4: Analysis of weight variability
