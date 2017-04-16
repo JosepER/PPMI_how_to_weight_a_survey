@@ -6,6 +6,7 @@ output: html_notebook
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(caret)
 library(forcats)
 library(foreign)
 library(magrittr)
@@ -432,7 +433,7 @@ As I mentioned before, base weights should sum up to the entire population from 
 
 The second basic step in weighting a survey is accounting for differences in the propensity to respond. Imagine a situation in which a profile of sampled units had higher propensity to respond than another profile. Imagine as well that the characteristics of both profiles were associated to our y variables (here alcohol and cigarretes consumption). This would create a bias in our analyses. 
 
-If we compute the sample ourselves, we can also compute the probability of a unit of being sampled. Computing the probability of replying to the survey is, however, more challenging.  As we can not direclty observe the probability of a unit of replying to the survey, we need to estimate it. This is done using information which we know for both respondent and non-respondent units. Here it is useful to think about the probability of response as a latent (i.e. not directly observable) variable.
+If we compute the sample ourselves, we can also compute the probability of a unit of being sampled. Computing the probability of replying to the survey is, however, more challenging. As we can not direclty observe the probability of a unit of replying to the survey, we need to estimate it. This is done using information which we know for both respondent and non-respondent units. Here it is useful to think about the probability of response as a latent (i.e. not directly observable) variable.
 
 There are two main ways of using this information. The first one would be creating cells from variable intersections (i.e. sampled units 15-24 & countryside; 15-24 & cities; 25-34 & countryside, etc.) and then calculate the probability of response in each cell. The second method is to estimate the probability of response by modelling it. 
 
@@ -440,16 +441,43 @@ The first approach has the advantage of being more simple. However, computing a 
 
 The second approach relies on the modelling skills of the researcher computing the weights. In order to estimate the proability of response we need to predict it. 'Predictive modelling' is slightly different than the usual 'inference modelling'. Here we are not interested in understanding the causes of differences in response propensities. We are just interested in predicting these. Therefore, we should take a 'data driven' approach that differs from those we usually see in social sciences. For an excellent introduction to 'predictive statistics' you can check the free book ['An Introduction to Statistical Learning' by James et al.](http://www-bcf.usc.edu/~gareth/ISL/).
 
-This is not a guide on 'predictive modelling'. However, it might be worth it to very briefly explain the basic principle behind it. We should try to build a model which is able to estimate the probability using only 'relevant' information and excluding 'noise' from the model. 
+This is not a guide on 'predictive modelling'. However, it might be worth it to very briefly explain the basic principle behind it. We should try to build a model which is able to estimate the probability using only 'relevant' information and excluding 'noise' from the model. Therefore, a predictive model should be fitting the observed data well enough but at the same time not too specific to it.
 
+Here we will use the paradata information to model the probability of response. The variables describing the type of house and the immediate vicinity around houses have a relatively small number of missing values (~ 8%) these missings seem to be related (i.e. all columns missing). Those sampled units that have missing values on all these paradata variables are always non-respondents. It would be useful to know why this pattern exists. I would guess that these are sampled units which interviewers could not reach for some reason. For this analysis, we will not use these units with missing values in ALL paradata variables. This should only result in a linear transformation of the estimated probabilities of response. 
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-data[vars.paradata]
+data.nonresponse.model <- data[vars.paradata] %>% select(idno, interva, type:vandaa)
+
+data.nonresponse.model$all.missing <- NA
+
+data.nonresponse.model$all.missing[is.na(data.nonresponse.model$type) &
+                                     is.na(data.nonresponse.model$access) &
+                                     is.na(data.nonresponse.model$physa) & 
+                                     is.na(data.nonresponse.model$littera) &
+                                     is.na(data.nonresponse.model$vandaa)] <- 1
+
+data.nonresponse.model %<>%
+  filter(is.na(all.missing)) %>%
+  select(-all.missing)
+
+data.nonresponse.model %<>%
+  mutate(response = as.numeric(interva) == 1)
 
 ```
 
+
+Explain log reg
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
+
+mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial",
+                 trControl = ctrl, tuneLength = 5)
+
+```
 
 
 ## Step 3: Use of auxiliary data
