@@ -462,8 +462,21 @@ data.nonresponse.model %<>%
   filter(is.na(all.missing)) %>%
   select(-all.missing)
 
+indep.vars.nonresponse <- c("type", "access", "physa", "littera", "vandaa")
+
+data.nonresponse.model[,indep.vars.nonresponse] %>% map(function(x){as.character(x)})
+
+data.nonresponse.model %>% map(function(x){sum(is.na(x))})
+
+for(i in indep.vars.nonresponse) {
+  data.nonresponse.model[[i]][is.na(data.nonresponse.model[[i]])] <- "Missing"
+  
+}
+
 data.nonresponse.model %<>%
-  mutate(response = as.numeric(interva) == 1)
+  mutate(response = as.numeric(as.numeric(interva) == 1))
+
+data.nonresponse.model$response
 
 ```
 
@@ -472,10 +485,13 @@ Explain log reg
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
+lm(response ~ type + access + physa + littera + vandaa,  
+   data = data.nonresponse.model,
+   family = "binomial")
+
 ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
 
-mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial",
-                 trControl = ctrl, tuneLength = 5)
+mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial",                 trControl = ctrl)
 
 ```
 
