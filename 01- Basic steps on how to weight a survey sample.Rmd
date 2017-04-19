@@ -6,6 +6,7 @@ output: html_notebook
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(glmnet)
 library(caret)
 library(forcats)
 library(foreign)
@@ -464,7 +465,7 @@ data.nonresponse.model %<>%
 
 indep.vars.nonresponse <- c("type", "access", "physa", "littera", "vandaa")
 
-data.nonresponse.model[,indep.vars.nonresponse] %>% map(function(x){as.character(x)})
+data.nonresponse.model[,indep.vars.nonresponse]  %<>% map(function(x){as.character(x)})
 
 data.nonresponse.model %>% map(function(x){sum(is.na(x))})
 
@@ -476,24 +477,49 @@ for(i in indep.vars.nonresponse) {
 data.nonresponse.model %<>%
   mutate(response = as.numeric(as.numeric(interva) == 1))
 
-data.nonresponse.model$response
-
 ```
 
 
 Explain log reg
 
+Check how to change intercept for log reg
+
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-lm(response ~ type + access + physa + littera + vandaa,  
+mod_binomial_simple <- lm(response ~ type + access + physa + littera + vandaa,  
    data = data.nonresponse.model,
    family = "binomial")
 
+formula <- as.formula("response ~ type + access + physa + littera + vandaa")
+
+options(na.action = 'na.pass')
+
+x.matrix <- model.matrix(formula, data = data.nonresponse.model)[, -1]
+response.cvm <- cv.glmnet(x = x.matrix, 
+                          y = data.nonresponse.model$response, 
+                          family = "binomial",
+                          alpha = 0)
+
+
 ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
 
-mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial",                 trControl = ctrl)
+mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial", trControl = ctrl)
+
+predicted <- mod_binomial$finalModel$fitted.values
+
+predicted. <- function(t) ifelse(predicted > t , 1,0)
+
+confusionMatrix(predicted.(0.5), data.nonresponse.model$response)
 
 ```
+
+```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+
+mod_rf <- train(as.factor(response) ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="rf",  trControl = ctrl)
+
+
+```
+
 
 
 ## Step 3: Use of auxiliary data
