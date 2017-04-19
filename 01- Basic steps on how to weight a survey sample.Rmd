@@ -6,6 +6,7 @@ output: html_notebook
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
 library(glmnet)
 library(caret)
 library(forcats)
@@ -477,30 +478,102 @@ for(i in indep.vars.nonresponse) {
 data.nonresponse.model %<>%
   mutate(response = as.numeric(as.numeric(interva) == 1))
 
+mean(data.nonresponse.model$response)
+
 ```
 
 
 Explain log reg
 
-Check how to change intercept for log reg
+explain that Valliant et al recommend log reg + grouping. However, glmnet might be even better.
+
+
+#### Logistic regression 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
-mod_binomial_simple <- lm(response ~ type + access + physa + littera + vandaa,  
-   data = data.nonresponse.model,
-   family = "binomial")
-
 formula <- as.formula("response ~ type + access + physa + littera + vandaa")
 
 options(na.action = 'na.pass')
 
 x.matrix <- model.matrix(formula, data = data.nonresponse.model)[, -1]
+
+log.reg.m <- lm(formula,  
+  data = data.nonresponse.model,
+  family = "binomial")
+
+coef.response.log <- coef(log.reg.m)
+
+predicted.log <- log.reg.m$fitted.values
+
+
+```
+
+
+
+#### Penalised logistic regression
+
+Explain penalised logistic regression 
+
+Check how to change intercept for log reg
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
 response.cvm <- cv.glmnet(x = x.matrix, 
                           y = data.nonresponse.model$response, 
                           family = "binomial",
                           alpha = 0)
 
+response.cvm <- cv.glmnet(x = x.matrix, 
+                          y = data.nonresponse.model$response, 
+                          type.measure = "auc",
+                          family = "binomial",
+                          alpha = 0)
 
+
+coef.response.cvm <- coef(response.cvm,s=0, response.cvm$lambda.1se)
+
+```
+
+Predict glmet
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+predicted.glmnet <- predict(response.cvm, 
+        x.matrix,
+        s=response.cvm$lambda.min,
+        type = "response")
+
+predicted.glmnet.auc <- predict(response.cvm, 
+        x.matrix,
+        s=response.cvm$lambda.min,
+        type = "response")
+
+plot(response.cvm)
+
+data_frame(logistic_regression = predicted.log, 
+           cv_glmnet_regression = predicted.glmnet[,1])
+
+```
+
+
+```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+
+flds <- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, returnTrain = FALSE)
+
+ci.cvAUC(predicted.log, data.nonresponse.model$response, folds = flds, confidence = 0.95)
+
+ci.cvAUC(predicted.glmnet[,1], data.nonresponse.model$response, folds = flds, confidence = 0.95)
+
+```
+
+
+
+
+
+
+```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+
+cvAUC
 ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
 
 mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial", trControl = ctrl)
@@ -510,10 +583,6 @@ predicted <- mod_binomial$finalModel$fitted.values
 predicted. <- function(t) ifelse(predicted > t , 1,0)
 
 confusionMatrix(predicted.(0.5), data.nonresponse.model$response)
-
-```
-
-```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
 
 mod_rf <- train(as.factor(response) ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="rf",  trControl = ctrl)
 
