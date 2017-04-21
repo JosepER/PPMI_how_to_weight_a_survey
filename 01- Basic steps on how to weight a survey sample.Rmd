@@ -482,8 +482,8 @@ mean(data.nonresponse.model$response)
 
 ```
 
+Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights 
 
-Explain log reg
 
 explain that Valliant et al recommend log reg + grouping. However, glmnet might be even better.
 
@@ -505,46 +505,9 @@ coef.response.log <- coef(log.reg.m)
 
 predicted.log <- log.reg.m$fitted.values
 
-
 ```
 
 
-
-#### Penalised logistic regression
-
-Explain penalised logistic regression 
-
-Check how to change intercept for log reg
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
-response.cvm <- cv.glmnet(x = x.matrix, 
-                          y = data.nonresponse.model$response, 
-                          family = "binomial",
-                          alpha = 1)
-
-
-
-coef.response.cvm <- coef(response.cvm,s=0, response.cvm$lambda.1se)
-
-```
-
-Predict glmet
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
-predicted.glmnet <- predict(response.cvm, 
-        x.matrix,
-        s=response.cvm$lambda.min,
-        type = "response")
-
-
-plot(response.cvm)
-
-data_frame(logistic_regression = predicted.log, 
-           cv_glmnet_regression = predicted.glmnet[,1])
-
-```
 
 
 ```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
@@ -554,8 +517,6 @@ flds <- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, return
 library(cvAUC)
 
 ci.cvAUC(predicted.log, data.nonresponse.model$response, folds = flds, confidence = 0.95)
-
-ci.cvAUC(predicted.glmnet[,1], data.nonresponse.model$response, folds = flds, confidence = 0.95)
 
 ```
 
