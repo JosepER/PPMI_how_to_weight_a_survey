@@ -514,11 +514,11 @@ predicted.log %>% head()
 
 ```
 
+Adjust log reg!
 
+#### Creating non-response adjustment classes
 
-#### Creating Classes
-
-
+Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.  
 
 
 
