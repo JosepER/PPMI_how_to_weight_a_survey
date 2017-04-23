@@ -443,7 +443,9 @@ The first approach has the advantage of being more simple. However, computing a 
 
 The second approach relies on the modelling skills of the researcher computing the weights. In order to estimate the proability of response we need to predict it. 'Predictive modelling' is slightly different than the usual 'inference modelling'. Here we are not interested in understanding the causes of differences in response propensities. We are just interested in predicting these. Therefore, we should take a 'data driven' approach that differs from those we usually see in social sciences. For an excellent introduction to 'predictive statistics' you can check the free book ['An Introduction to Statistical Learning' by James et al.](http://www-bcf.usc.edu/~gareth/ISL/).
 
-This is not a guide on 'predictive modelling'. However, it might be worth it to very briefly explain the basic principle behind it. We should try to build a model which is able to estimate the probability using only 'relevant' information and excluding 'noise' from the model. Therefore, a predictive model should be fitting the observed data well enough but at the same time not too specific to it.
+This is not a guide on 'predictive modelling'. However, it might be worth it to very briefly explain the basic principle behind it. We should try to build a model which is able to estimate the probability using only 'relevant' information and excluding 'noise' from the model. Therefore, a predictive model should be fitting the observed data well enough but at the same time not too specific to it. 
+
+For this specific case of non-response weighting, we are especially interested in using propensity predictors which are related to both the response propensity and our dependent variables.
 
 Here we will use the paradata information to model the probability of response. The variables describing the type of house and the immediate vicinity around houses have a relatively small number of missing values (~ 8%) these missings seem to be related (i.e. all columns missing). Those sampled units that have missing values on all these paradata variables are always non-respondents. It would be useful to know why this pattern exists. I would guess that these are sampled units which interviewers could not reach for some reason. For this analysis, we will not use these units with missing values in ALL paradata variables. This should only result in a linear transformation of the estimated probabilities of response. 
 
@@ -482,13 +484,16 @@ mean(data.nonresponse.model$response)
 
 ```
 
-Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights 
+Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities. 
 
 
 explain that Valliant et al recommend log reg + grouping. However, glmnet might be even better.
 
 
 #### Logistic regression 
+
+In order to do a Logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the 'lm' function. 
+
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 formula <- as.formula("response ~ type + access + physa + littera + vandaa")
@@ -505,7 +510,20 @@ coef.response.log <- coef(log.reg.m)
 
 predicted.log <- log.reg.m$fitted.values
 
+predicted.log %>% head()
+
 ```
+
+
+
+#### Creating Classes
+
+
+
+
+
+
+
 
 
 
