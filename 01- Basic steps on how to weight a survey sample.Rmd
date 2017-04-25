@@ -1,8 +1,10 @@
 ---
 title: "(Very) basic steps on how to weight a survey sample"
-subtitle: "An explained example with R code"
 author: "JosepER"
-output: html_notebook
+subtitle: An explained example with R code
+output:
+  html_notebook: default
+  html_document: default
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -495,14 +497,14 @@ explain that Valliant et al recommend log reg + grouping. However, glmnet might 
 In order to do a Logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the 'lm' function. 
 
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
+```{r,  warning=FALSE, message=FALSE}
 formula <- as.formula("response ~ type + access + physa + littera + vandaa")
 
 options(na.action = 'na.pass')
 
 x.matrix <- model.matrix(formula, data = data.nonresponse.model)[, -1]
 
-log.reg.m <- lm(formula,  
+log.reg.m <- glm(formula,  
   data = data.nonresponse.model,
   family = "binomial")
 
@@ -510,17 +512,53 @@ coef.response.log <- coef(log.reg.m)
 
 predicted.log <- log.reg.m$fitted.values
 
+data.nonresponse.model$predicted.log <- predicted.log
+
 predicted.log %>% head()
 
 ```
 
-Adjust log reg!
-
 #### Creating non-response adjustment classes
 
-Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.  
+Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.
+
+Looking at the distribution of estimated probabilities of response, we observe a large majority of values between `r quantile(probs = 0.2) %>% round(1)` and `r quantile(probs = 0.9) %>% round(1)`. However, there are several outliers at both ends of the distribution. 
+
+As there is not so much dispersion in values in the middle of the distribution, creating classess accoring to quintiles might not be the best way to account for differences in estimated response propensities. However, other methods might create classess which are too specific to outliers. This is kind of a bias-variance trade off. If we fit broad classes which encompass very different estimated probabilities within them, we will be adjusting less and so keeping more bias in our estiamtes. If we create tight classes capturing these outliers, then we will have  large differences in weights and so more variance in our estimates. 
+
+```{r,  warning=FALSE, message=FALSE}
+
+predicted.log %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
+
+```
 
 
+These are the 5 classes created using 20th, 40th, 60th and 80th quantiles.
+
+```{r,  warning=FALSE, message=FALSE}
+
+data.nonresponse.model$predicted.class <- cut(x = data.nonresponse.model$predicted.log, breaks = c(0,quantile(predicted.log, probs = seq(0,1,0.2))[-1] ))
+
+data.nonresponse.model$predicted.class %>% levels()
+
+```
+
+To compute the non-response weights, we can use the mean estimated probability of response in each class. 
+
+```{r,  warning=FALSE, message=FALSE}
+
+data.nonresponse.model %>%
+  group_by(predicted.class) %>%
+  summarise(mean.prob = mean(predicted.log) %>% round(4))
+
+```
+
+
+Adjust log reg!
+
+  
+
+After creating the classes, a good practice would be to check for covariate balance. Units in the same class should have similar values in these covariates. At the same time, we would ideally find differencess between classes.
 
 
 
