@@ -470,7 +470,7 @@ data.nonresponse.model %<>%
 
 indep.vars.nonresponse <- c("type", "access", "physa", "littera", "vandaa")
 
-data.nonresponse.model[,indep.vars.nonresponse]  %<>% map(function(x){as.character(x)})
+data.nonresponse.model[,indep.vars.nonresponse[]]  %<>% map(function(x){as.character(x)})
 
 data.nonresponse.model %>% map(function(x){sum(is.na(x))})
 
@@ -532,8 +532,7 @@ predicted.log %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
 
 ```
 
-
-These are the 5 classes created using 20th, 40th, 60th and 80th quantiles.
+These are the 5 classes created using 20th, 40th, 60th and 80th quintiles.
 
 ```{r,  warning=FALSE, message=FALSE}
 
@@ -553,14 +552,38 @@ data.nonresponse.model %>%
 
 ```
 
+And then we can compute the non-response weight as the inverse of the mean probabilities in each class. 
+
+```{r,  warning=FALSE, message=FALSE}
+data.nonresponse.model %<>% left_join(
+data.nonresponse.model %>%
+  group_by(predicted.class) %>%
+  summarise(mean.prob = mean(predicted.log) ), by = "predicted.class")
+
+data.nonresponse.model %<>%
+  mutate(nonresp.weight = round(1/mean.prob, 4) )
+
+data.nonresponse.model$nonresp.weight %>% unique %>% sort
+
+```
+
+After creating the classes, a good practice would be to check for covariate balance. This procedure is explained in pag. 330 of Valliant et al. Units in the same class should have similar values in covariates. At the same time, we would ideally find differencess between classes. In plain words, here we would check if classe are made of homogeneous units and if classes really distinguish different profiles of these. As an example I will do the balance analysis for the ordinal covariates *physa*, *littera* and *vandaa*. For the other covariates, we would need to fit multinomial regressions and interpret a larger number of coefficients.
+
+
+
+
+
+
+
+
 
 Adjust log reg!
 
   
 
-After creating the classes, a good practice would be to check for covariate balance. Units in the same class should have similar values in these covariates. At the same time, we would ideally find differencess between classes.
 
 
+Pag 330 Valliant.
 
 
 
