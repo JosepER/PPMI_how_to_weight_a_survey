@@ -14,6 +14,7 @@ output:
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 library(MASS)
+library(randomForest)
 library(glmnet)
 library(caret)
 library(forcats)
@@ -216,7 +217,7 @@ The merged data set contains sampled **respondents and non-respondents**. It con
 dim(data)
 ```
 
-The data set contains information about `r nrow(data %>% filter(interva == "Complete and valid interview related to CF"))` respondents and `r nrow(data %>% filter(interva != "Complete and valid interview related to CF"))` non-respondents.
+The data set contains information about `r nrow(data %>% dplyr::filter(interva == "Complete and valid interview related to CF"))` respondents and `r nrow(data %>% dplyr::filter(interva != "Complete and valid interview related to CF"))` non-respondents.
 
 
 And this is a list of the variables it contains (with their labels). **idno** is the individual identification variable.
@@ -539,24 +540,16 @@ rm(resp.pop, resp.subgroup)
 
 predicted.log.tr <- predict(log.reg.m, data.nonresponse.model, type = "response")
 
-data.nonresponse.model$predicted.log <- predicted.log.tr
+data.nonresponse.model$predicted.log.tr <- predicted.log.tr
 
-predicted.log %>% head()
+predicted.log.tr %>% head()
 
-rm(coef.response.log, formula, i, log.reg.m)
-
-```
-
-
-
-
-```{r,  warning=FALSE, message=FALSE}
-
+rm(coef.response.log, formula, i)
 
 ```
-
 
 ### Creating non-response adjustment classes
+
 
 Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.
 
@@ -564,13 +557,16 @@ Looking at the distribution of estimated probabilities of response, we observe a
 
 As there is not so much dispersion in values in the middle of the distribution, creating classess accoring to quintiles might not be the best way to account for differences in estimated response propensities. However, other methods might create classess which are too specific to outliers. This is kind of a bias-variance trade off. If we fit broad classes which encompass very different estimated probabilities within them, we will be adjusting less and so keeping more bias in our estiamtes. If we create tight classes capturing these outliers, then we will have  large differences in weights and so more variance in our estimates. 
 
+
 ```{r,  warning=FALSE, message=FALSE}
 
 predicted.log %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
 
 ```
 
+
 These are the 5 classes created using 20th, 40th, 60th and 80th quintiles.
+
 
 ```{r,  warning=FALSE, message=FALSE}
 
@@ -586,7 +582,6 @@ And below there is a summary of the estimated propensities included in each of t
 
 ggplot(data.nonresponse.model, aes(x = predicted.class, y = predicted.log)) +
   geom_boxplot()
-
 
 ```
 
@@ -662,15 +657,112 @@ ctable.within <- cbind(ctable.within, "p value" = p)
 
 ctable.within
 
-rm(formula., test.within.model, p)
+rm(formula., test.within.model, p, indep.vars.nonresponse, i, test.between.model)
+
+```
+
+### Propensity adjustment (alternative to adjustment classes)
+
+An alternative to computing class adjustments is to directly use the inverse of the estimated probabilities of response. Adjustment classes act are a way of 'smoothing' predictions, avoiding extreme values and overfit. Therefore, they are based in some kind of mistrust of statistical models. Even if they are a standard procedure in survey methodology and backed by solid literature, they might look a bit naive to researchers coming from other areas (e.g. econometrics, genomics, etc.). Adjusting directly with propensity scores relies more on statistical/modelling skills of researchers. Here we will show a couple of alternative methods. As previously explained, these need to avoid being too specific to our data. Instead, they should try to give information on the distribution that generated this data.
+
+#### Estimating response propensities using Cross-validated LASSO Regression.
+
+The first method we will try is a penalised regression, more specifically a LASSO regression. Penalised regressions are very similar to a logistic regression but have the particularity of having 'shrinked' coefficients. This reduces the influence of predictors to avoid overfit. In other words, it tries to avoid noise from our data set into the model. This is done by tunning the penalty parameters with cross-validation (a resampling method).
+
+The first six estimated propensities are after the chunk of code. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+formula. <- as.formula("response ~ type + access + physa + littera + vandaa")
+
+options(na.action = 'na.pass')
+
+x.matrix <- model.matrix(formula., data = data.nonresponse.model)[, -1]
+
+glm.cv.model <- cv.glmnet(x.matrix, data.nonresponse.model$response, alpha = 1, family="binomial")
+
+predicted.lasso <- predict(glm.cv.model, x.matrix, s = "lambda.min", type = "response")[,1]
+
+data.nonresponse.model$predicted.lasso <- predicted.lasso
+
+head(predicted.lasso)
+
+```
+
+#### Estimating response propensities using Random Forest.
+
+Last, we are going to try a 'Random Forest' model. This is an algorithm based on the repetition of classification trees. Below you can find the first six predictions using this method.  
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+rf.model <- randomForest(data = data.nonresponse.model %>% select(response, type:vandaa)] x = x.matrix, y = data.nonresponse.model$response )
+
+predicted.rf <- rf.model$predicted
+
+data.nonresponse.model$predicted.rf <- predicted.rf 
+
+predicted.rf %>% head()
+
+```
+
+Comparing the predictions obtained with these three methods (logistic regression, cross-validated lasso and random forest) we observe that they all give relatively similar values. They are all centered around the same mean, which is the proportion of respondents in our subset (except random forest, which has a very small deviation). Lasso regression is the most 'rigid'/'smoother' with a smaller standard deviation in its predictions. Logistic regression is almost always slightly more distant of the mean than the lasso regression. Random forest algorithm seems to fit the sample data more and has the largest standard deviation in the predictions. Here it is important to note that our logistic and lasso regressions included only linear parameters (i.e. no squared coefficients nor interactions). Therefore, there were rather 'rigid' methods. Random forest does allow for interactions between variables. 
+
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+mean(data.nonresponse.model$response)
+
+list.comparison <- list()
+
+list.comparison$head.predicted.vals <- cbind(predicted.log, predicted.lasso, predicted.rf) %>% head(10)
+
+list.comparison$means <- c(mean.log.reg = mean(predicted.log), 
+                               mean.lasso = mean(predicted.lasso), 
+                               mean.rf = mean(predicted.rf)) 
+
+list.comparison$sd <- c(sd.log.reg = sd(predicted.log), 
+                               sd.lasso = sd(predicted.lasso), 
+                               sd.rf = sd(predicted.rf)) 
+
+list.comparison
+```
+
+Training classification error
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+data.nonresponse.model %<>%
+  mutate(predicted.category.log.reg = (predicted.log > 0.5) %>% as.numeric,
+         predicted.category.lasso = (predicted.lasso > 0.5) %>% as.numeric,
+         predicted.category.rf = (predicted.rf > 0.5) %>% as.numeric)
+
+train.correct.logreg <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.log.reg) %>% diag() %>% sum()/nrow(data.nonresponse.model)
+
+train.correct.lasso <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.lasso) %>% diag() %>% sum()/nrow(data.nonresponse.model)
+
+train.correct.rf <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.rf) %>% diag() %>% sum()/nrow(data.nonresponse.model)
+
+c(train.correct.logreg, train.correct.lasso, train.correct.rf)
 
 ```
 
 
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+folds <- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, returnTrain = FALSE)
+
+for(i in 1:length(folds)){
+  
+  
+  
+  
+  
+  
+  
+}
 
 
-
-Adjust log reg!
+```
 
   
 
@@ -680,9 +772,16 @@ Glmnet alternative
 
 
 
+
+
+
+
+
+
+
 ```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
 
-flds <- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, returnTrain = FALSE)
+
 
 library(cvAUC)
 
