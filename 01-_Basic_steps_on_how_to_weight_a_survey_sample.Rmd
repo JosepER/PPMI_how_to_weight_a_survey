@@ -486,6 +486,12 @@ for(i in c("physa", "littera", "vandaa")) {
   
 }
 
+for(i in c("physa", "littera", "vandaa")) {
+  data.nonresponse.model[[i]] <- as.ordered(data.nonresponse.model[[i]])
+
+  
+}
+
 data.nonresponse.model %<>%
   mutate(response = as.numeric(as.numeric(interva) == 1))
 
@@ -695,7 +701,8 @@ Last, we are going to try a 'Random Forest' model. This is an algorithm based on
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-rf.model <- randomForest(data = data.nonresponse.model %>% select(response, type:vandaa)] x = x.matrix, y = data.nonresponse.model$response )
+rf.model <- randomForest("response ~ .", data = (data.nonresponse.model[c("response", "type", "access",
+                                                                          "physa", "littera", "vandaa")]))
 
 predicted.rf <- rf.model$predicted
 
