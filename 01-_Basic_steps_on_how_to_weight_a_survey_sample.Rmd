@@ -695,24 +695,7 @@ head(predicted.lasso)
 
 ```
 
-#### Estimating response propensities using Random Forest.
-
-Last, we are going to try a 'Random Forest' model. This is an algorithm based on the repetition of classification trees. Below you can find the first six predictions using this method.  
-
-```{r,  echo=TRUE, warning=FALSE, message=FALSE}
-
-rf.model <- randomForest("response ~ .", data = (data.nonresponse.model[c("response", "type", "access",
-                                                                          "physa", "littera", "vandaa")]))
-
-predicted.rf <- rf.model$predicted
-
-data.nonresponse.model$predicted.rf <- predicted.rf 
-
-predicted.rf %>% head()
-
-```
-
-Comparing the predictions obtained with these three methods (logistic regression, cross-validated lasso and random forest) we observe that they all give relatively similar values. They are all centered around the same mean, which is the proportion of respondents in our subset (except random forest, which has a very small deviation). Lasso regression is the most 'rigid'/'smoother' with a smaller standard deviation in its predictions. Logistic regression is almost always slightly more distant of the mean than the lasso regression. Random forest algorithm seems to fit the sample data more and has the largest standard deviation in the predictions. Here it is important to note that our logistic and lasso regressions included only linear parameters (i.e. no squared coefficients nor interactions). Therefore, there were rather 'rigid' methods. Random forest does allow for interactions between variables. 
+Comparing the predictions obtained with these two methods (logistic regression and cross-validated lasso ) we observe that they all give relatively similar values. They are all centered around the same mean, which is the proportion of respondents in our subset. Lasso regression is the more 'rigid'/'smoother' with a smaller standard deviation in its predictions. Logistic regression is almost always slightly more distant of the mean than the lasso regression. It is important to note that our logistic and lasso regressions included only linear parameters (i.e. no squared coefficients nor interactions). Therefore, these were rather 'rigid' methods.
 
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
@@ -721,17 +704,17 @@ mean(data.nonresponse.model$response)
 
 list.comparison <- list()
 
-list.comparison$head.predicted.vals <- cbind(predicted.log, predicted.lasso, predicted.rf) %>% head(10)
+list.comparison$head.predicted.vals <- cbind(predicted.log, predicted.lasso) %>% head(10)
 
 list.comparison$means <- c(mean.log.reg = mean(predicted.log), 
-                               mean.lasso = mean(predicted.lasso), 
-                               mean.rf = mean(predicted.rf)) 
+                               mean.lasso = mean(predicted.lasso)) 
 
 list.comparison$sd <- c(sd.log.reg = sd(predicted.log), 
-                               sd.lasso = sd(predicted.lasso), 
-                               sd.rf = sd(predicted.rf)) 
+                               sd.lasso = sd(predicted.lasso)) 
 
 list.comparison
+
+rm(list.comparison)
 ```
 
 Training classification error
@@ -740,38 +723,90 @@ Training classification error
 
 data.nonresponse.model %<>%
   mutate(predicted.category.log.reg = (predicted.log > 0.5) %>% as.numeric,
-         predicted.category.lasso = (predicted.lasso > 0.5) %>% as.numeric,
-         predicted.category.rf = (predicted.rf > 0.5) %>% as.numeric)
+         predicted.category.lasso = (predicted.lasso > 0.5) %>% as.numeric)
 
 train.correct.logreg <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.log.reg) %>% diag() %>% sum()/nrow(data.nonresponse.model)
 
 train.correct.lasso <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.lasso) %>% diag() %>% sum()/nrow(data.nonresponse.model)
 
-train.correct.rf <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.rf) %>% diag() %>% sum()/nrow(data.nonresponse.model)
-
-c(train.correct.logreg, train.correct.lasso, train.correct.rf)
+c(train.correct.logreg, train.correct.lasso)
 
 ```
 
 
+CV log reg
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
 folds <- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, returnTrain = FALSE)
 
+formula. <- as.formula("response ~ type + access + physa + littera + vandaa")
+
+  success.rate <- vector()
+
 for(i in 1:length(folds)){
   
+  t <- i
   
+  train.folds <- c(1:10)[-t]
   
+  temp.train.data <- data.nonresponse.model[folds[train.folds] %>% unlist(),]
   
+  temp.test.data <- data.nonresponse.model[folds[t] %>% unlist(),]
   
+  temp.log.reg.m <- glm(formula., data = temp.train.data, family = "binomial")
+  
+  temp.predicted <- predict(temp.log.reg.m, temp.test.data, type = "response")
+  
+  temp.predicted <- ifelse(temp.predicted > 0.5, 1, 0)
+  
+  success.rate <- c(success.rate, table(temp.predicted, temp.test.data$response) %>% diag() %>% sum()/nrow(temp.test.data) )
   
   
 }
 
+  cv.success.log.reg <- success.rate %>% sum()/length(success.rate)
 
+  rm(train.folds, temp.train.data, temp.test.data, temp.log.reg.m, temp.predicted, success.rate)
+
+    
 ```
 
+
+CV glmnet
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+  success.rate <- vector()
+
+for(i in 1:length(folds)){
   
+  t <- i
+  
+  train.folds <- c(1:10)[-t]
+  
+  temp.train.data <- x.matrix[folds[train.folds] %>% unlist(),]
+  
+  temp.train.y  <- data.nonresponse.model[folds[train.folds] %>% unlist(),"response"]
+
+  temp.test.data <- x.matrix[folds[t] %>% unlist(),]
+  
+  temp.test.y <- data.nonresponse.model[folds[t] %>% unlist(),"response"]
+
+  temp.glmnet.m <- glmnet(x = temp.train.data, y = temp.train.y, family = "binomial")
+  
+  temp.predicted <- predict(temp.glmnet.m, temp.test.data, type = "response", s = glm.cv.model$lambda.min)
+  
+  temp.predicted <- ifelse(temp.predicted > 0.5, 1, 0)
+  
+  success.rate <- c(success.rate, table(temp.predicted, temp.test.y) %>% diag() %>% sum()/nrow(temp.test.data) )
+  
+}
+
+  cv.success.glmnet <- success.rate %>% sum()/length(success.rate)
+
+  rm(t, train.folds, temp.train.data, temp.train.y, temp.test.data,
+     tempt.test.y, temp.glmnet.m, temp.predicted, success.rate)  
+  
+```
 
 
 Glmnet alternative
