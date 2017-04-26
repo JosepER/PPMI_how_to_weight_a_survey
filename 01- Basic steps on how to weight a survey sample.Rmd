@@ -3,8 +3,8 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
-  html_notebook: default
   html_document: default
+  html_notebook: default
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -499,9 +499,6 @@ mean(data.nonresponse.model$response) # Create a new paragraph for the adjustmen
 Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities. 
 
 
-explain that Valliant et al recommend log reg + grouping. However, glmnet might be even better.
-
-
 #### Logistic regression 
 
 In order to do a Logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the 'lm' function. 
@@ -606,19 +603,30 @@ After creating the classes, a good practice would be to check for covariate bala
 
 In my opinion, the best way of doing this analysis is by fitting two different regressions for each covariate. As an example I will do the balance analysis for the ordinal covariate *physa*. In a real analysis this should be repeated for all covariates.
 
-For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*), we 
+For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*), I will use al ordered logistic regression. An alternative would be to treat the covariate as a continous varaible and use an OLS regression. 
+
+The variable *physa* compares the 'Overall physical condition building/house'. The variable is negativelly coded so larger values mean worse physical condition. The coefficients of the ordered logistic regression show that the larger the estimated propensity, the smaller the probability of being in bad physical conditions. Therefore, people in houses with worse physical conditions would have smaller response propensity and so be underrepresented in our sample. From the coefficients below we see that the classes we have created for non-response adjustment somehow explain differences in our analysed covariate. However, ideally we would have a more clear effect of classes on our covariate. We see that the second adjustment class created (that for estimated propensities between 0.41 and 0.443) actually has larger probabilities of having worse physical conditions than the base category (0 to 0.41). At the same time, the third and fourth categories (0.443 to 0.459) and (0.459 to 0.485) have very similar coefficients, which might indicate that they do not really distinguish different classes of sampled units. 
 
 
 ```{r,  warning=FALSE, message=FALSE}
 
 formula. <- as.formula("physa ~ predicted.class")
 
-test.within.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
+test.between.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
 
+ctable.between <- coef(summary(test.between.model))
 
+p <- pnorm(abs(ctable.between[, "t value"]), lower.tail = FALSE) %>% round(4)
+
+ctable.between <- cbind(ctable.between, "p value" = p)
+
+ctable.between
 
 ```
 
+For the within-class check, we can extend our model to include interactions between class and response. This will check if, within a non-response class, there are differences between respondents and non-respondents in our covariate *physa* (ideally they wouldn't be and we would not find them).
+
+In this second test (see coefficients below) we see that one of the interactions has a significant coefficient at 5% confidence level. Ideally, all interaction terms would be non-significant, meaning that we do not observe within-group differences between respondents and non-respondents in our covariates. A way of dealing with this situation with one significant coefficient would be to explore other ways of spliting units into classes. However, as explained before, these other categorisations would have drawbacks in terms of inflated variance. Moreover, if we have a large number of classes and covariates, we would expect to find significant coefficients just by chance. Therefore, as long as these unbalances are not extended most classes and covariates, reporting these unbalances should be enough.
 
 
 ```{r,  warning=FALSE, message=FALSE}
@@ -627,17 +635,17 @@ formula. <- as.formula("physa ~ response + predicted.class + response * predicte
 
 test.within.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
 
-ctable <- coef(summary(test.within.model))
+ctable.within <- coef(summary(test.within.model))
 
-p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) %>% round(4)
+p <- pnorm(abs(ctable.within[, "t value"]), lower.tail = FALSE) %>% round(4)
 
-ctable <- cbind(ctable, "p value" = p)
+ctable.within <- cbind(ctable.within, "p value" = p)
+
+ctable.within
 
 rm(formula., test.within.model, p)
 
 ```
-
-In this first test we see that one of the interactions has a significant coefficient at 5% confidence level. This means that, within that non-response class, respondents and non-respondents might have differences in our covariate *physa*. Ideally, all interaction terms would be non-significant, meaning that we do not observe within-group differences between respondents and non-respondents in our covariates. An way of dealing with this situation with one significant coefficient would be to explore other ways of spliting units into classes (probably a more tight one with deciles). However, as explained before, these other categorisations would have drawbacks in terms of inflated variance. Moreover, if we have a large number of classes and covariates, we would expect to find significant coefficients just by chance. Therefore, reporting these unbalances    
 
 
 
@@ -648,9 +656,7 @@ Adjust log reg!
   
 
 
-
-Pag 330 Valliant.
-
+Glmnet alternative
 
 
 
