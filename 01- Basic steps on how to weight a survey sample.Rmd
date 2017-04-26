@@ -9,6 +9,7 @@ output:
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
+library(MASS)
 library(glmnet)
 library(caret)
 library(forcats)
@@ -470,19 +471,28 @@ data.nonresponse.model %<>%
 
 indep.vars.nonresponse <- c("type", "access", "physa", "littera", "vandaa")
 
-data.nonresponse.model[,indep.vars.nonresponse[]]  %<>% map(function(x){as.character(x)})
+data.nonresponse.model[,c("type", "access")]  %<>% map(function(x){as.character(x)})
 
 data.nonresponse.model %>% map(function(x){sum(is.na(x))})
 
-for(i in indep.vars.nonresponse) {
+# Missing category for missings in multinomial variables.
+  
+for(i in c("type", "access")) {
   data.nonresponse.model[[i]][is.na(data.nonresponse.model[[i]])] <- "Missing"
+  
+}
+
+# Mean imputation for ordinal variables.
+
+for(i in c("physa", "littera", "vandaa")) {
+  data.nonresponse.model[[i]][is.na(data.nonresponse.model[[i]])] <- levels(data.nonresponse.model[[i]])[median(data.nonresponse.model[[i]] %>% as.numeric(), na.rm = T) ] 
   
 }
 
 data.nonresponse.model %<>%
   mutate(response = as.numeric(as.numeric(interva) == 1))
 
-mean(data.nonresponse.model$response)
+mean(data.nonresponse.model$response) # Create a new paragraph for the adjustment of the log reg and delete this.
 
 ```
 
@@ -518,6 +528,12 @@ predicted.log %>% head()
 
 ```
 
+```{r,  warning=FALSE, message=FALSE}
+
+rm(coef.response.log, formula, i, log.reg.m)
+```
+
+
 #### Creating non-response adjustment classes
 
 Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.
@@ -541,6 +557,23 @@ data.nonresponse.model$predicted.class <- cut(x = data.nonresponse.model$predict
 data.nonresponse.model$predicted.class %>% levels()
 
 ```
+
+And below there is a summary of the estimated propensities included in each of them (in boxplots).We can see that the first and last groups have more dispersion in propensities. The middle three groups have very little dispersion and are similar between them.
+
+```{r,  warning=FALSE, message=FALSE}
+
+ggplot(data.nonresponse.model, aes(x = predicted.class, y = predicted.log)) +
+  geom_boxplot()
+
+
+```
+
+
+
+
+
+
+
 
 To compute the non-response weights, we can use the mean estimated probability of response in each class. 
 
@@ -567,11 +600,44 @@ data.nonresponse.model$nonresp.weight %>% unique %>% sort
 
 ```
 
-After creating the classes, a good practice would be to check for covariate balance. This procedure is explained in pag. 330 of Valliant et al. Units in the same class should have similar values in covariates. At the same time, we would ideally find differencess between classes. In plain words, here we would check if classe are made of homogeneous units and if classes really distinguish different profiles of these. As an example I will do the balance analysis for the ordinal covariates *physa*, *littera* and *vandaa*. For the other covariates, we would need to fit multinomial regressions and interpret a larger number of coefficients.
+#### Testing non-response adjustment classes
+
+After creating the classes, a good practice would be to check for covariate balance. This procedure is explained in pag. 330 of Valliant et al. Units in the same class should have similar values in covariates. At the same time, we would ideally find differencess between classes. In plain words, here we would check if classe are made of homogeneous units (within-class check) and if classes really distinguish different profiles of these (between-class check). For the within-group check, we are especially interested in checking if profiles of respondents and non-respondents within each class are similar. 
+
+In my opinion, the best way of doing this analysis is by fitting two different regressions for each covariate. As an example I will do the balance analysis for the ordinal covariate *physa*. In a real analysis this should be repeated for all covariates.
+
+For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*), we 
+
+
+```{r,  warning=FALSE, message=FALSE}
+
+formula. <- as.formula("physa ~ predicted.class")
+
+test.within.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
 
 
 
+```
 
+
+
+```{r,  warning=FALSE, message=FALSE}
+
+formula. <- as.formula("physa ~ response + predicted.class + response * predicted.class")
+
+test.within.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
+
+ctable <- coef(summary(test.within.model))
+
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) %>% round(4)
+
+ctable <- cbind(ctable, "p value" = p)
+
+rm(formula., test.within.model, p)
+
+```
+
+In this first test we see that one of the interactions has a significant coefficient at 5% confidence level. This means that, within that non-response class, respondents and non-respondents might have differences in our covariate *physa*. Ideally, all interaction terms would be non-significant, meaning that we do not observe within-group differences between respondents and non-respondents in our covariates. An way of dealing with this situation with one significant coefficient would be to explore other ways of spliting units into classes (probably a more tight one with deciles). However, as explained before, these other categorisations would have drawbacks in terms of inflated variance. Moreover, if we have a large number of classes and covariates, we would expect to find significant coefficients just by chance. Therefore, reporting these unbalances    
 
 
 
@@ -618,7 +684,6 @@ predicted. <- function(t) ifelse(predicted > t , 1,0)
 confusionMatrix(predicted.(0.5), data.nonresponse.model$response)
 
 mod_rf <- train(as.factor(response) ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="rf",  trControl = ctrl)
-
 
 ```
 
