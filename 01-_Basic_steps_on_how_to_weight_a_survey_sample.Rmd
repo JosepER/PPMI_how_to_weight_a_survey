@@ -22,6 +22,9 @@ library(foreign)
 library(magrittr)
 library(tidyverse)
 options(scipen = 9999)
+
+set.seed(456162)
+
 ```
 
 
@@ -411,18 +414,21 @@ A simple interpretation of base weights it 'the number of units in our populatio
 
 The sum of our computed weights in the ESS dataset with `r table(data$interva)[["Complete and valid interview related to CF"]]` respondents equals `r data %>%  summarise(sum.base.weights.ess.dataset = round(sum(base.weight, na.rm = T),0)) %>% .[["sum.base.weights.ess.dataset"]]`. Doing a very simple Extrapolation to include the `r table(data$interva)[["No interview for other reason"]]` non-respondents would give us a sum of weights equal to `r data %>%  summarise(sum.base.weights.ess.dataset = round(sum(base.weight, na.rm = T),0)) %>% .[["sum.base.weights.ess.dataset"]]* (nrow(data)/ table(data$interva)[["Complete and valid interview related to CF"]])`. This last figure would be much closer to the total UK population over 15. 
 
-It is a common practice for many researchers to scale the weights so that their sum equals the sample size (instead of the populatio size). This would be especially true when they do not know the sampling probabilities of some sampled units and when they plan to do post-stratification adjustments (see step 3). Scaled weights would equally adjust for differences in sampling probabilities. 
+It is a common practice for many researchers to scale the weights so that their sum equals the sample size (instead of the population size). Scaled weights would equally adjust for differences in sampling probabilities. 
 
 Here we compute our scaled weights and we compare them with the ones given in the ESS dataset. Here we see that our weights scaled (*base.weigth.scaled*) are almost equal to those computed in the ESS dataset (*dweigth*). The small differences are probably due to rounding error.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
 data %>%
   filter(!is.na(base.weight)) %>% 
   select(idno, base.weight) %>%
   mutate(base.weight.scaled = base.weight/sum(base.weight, na.rm = T)*nrow(data[!is.na(data$prob),])) %>%
   left_join(original.weights %>% select(idno, dweight),
             by = "idno")
+
+data %<>%
+  mutate(base.weight.scaled = base.weight/sum(base.weight, na.rm = T)*nrow(data[!is.na(data$prob),]))
+
 
 ```
 
@@ -507,7 +513,6 @@ Valliant et al (2013) recommend estimating the response propensities and then gr
 
 In order to do a Logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the 'lm' function. 
 
-
 ```{r,  warning=FALSE, message=FALSE}
 formula <- as.formula("response ~ type + access + physa + littera + vandaa")
 
@@ -566,7 +571,7 @@ As there is not so much dispersion in values in the middle of the distribution, 
 
 ```{r,  warning=FALSE, message=FALSE}
 
-predicted.log %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
+predicted.log.tr %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
 
 ```
 
@@ -576,7 +581,7 @@ These are the 5 classes created using 20th, 40th, 60th and 80th quintiles.
 
 ```{r,  warning=FALSE, message=FALSE}
 
-data.nonresponse.model$predicted.class <- cut(x = data.nonresponse.model$predicted.log, breaks = c(0,quantile(predicted.log, probs = seq(0,1,0.2))[-1] ))
+data.nonresponse.model$predicted.class <- cut(x = data.nonresponse.model$predicted.log.tr, breaks = c(0,quantile(predicted.log.tr, probs = seq(0,1,0.2))[-1] ))
 
 data.nonresponse.model$predicted.class %>% levels()
 
@@ -586,7 +591,7 @@ And below there is a summary of the estimated propensities included in each of t
 
 ```{r,  warning=FALSE, message=FALSE}
 
-ggplot(data.nonresponse.model, aes(x = predicted.class, y = predicted.log)) +
+ggplot(data.nonresponse.model, aes(x = predicted.class, y = predicted.log.tr)) +
   geom_boxplot()
 
 ```
@@ -598,7 +603,7 @@ To compute the non-response weights, we can use the mean estimated probability o
 
 data.nonresponse.model %>%
   group_by(predicted.class) %>%
-  summarise(mean.prob = mean(predicted.log) %>% round(4))
+  summarise(mean.prob = mean(predicted.log.tr) %>% round(4))
 
 ```
 
@@ -608,7 +613,7 @@ And then we can compute the non-response weight as the inverse of the mean proba
 data.nonresponse.model %<>% left_join(
 data.nonresponse.model %>%
   group_by(predicted.class) %>%
-  summarise(mean.prob = mean(predicted.log) ), by = "predicted.class")
+  summarise(mean.prob = mean(predicted.log.tr) ), by = "predicted.class")
 
 data.nonresponse.model %<>%
   mutate(nonresp.weight = round(1/mean.prob, 4) )
@@ -663,7 +668,8 @@ ctable.within <- cbind(ctable.within, "p value" = p)
 
 ctable.within
 
-rm(formula., test.within.model, p, indep.vars.nonresponse, i, test.between.model)
+rm(formula., test.within.model, p, indep.vars.nonresponse, i, test.between.model,
+   ctable.between, ctable.within)
 
 ```
 
@@ -717,7 +723,7 @@ list.comparison
 rm(list.comparison)
 ```
 
-Training classification error
+Comparing the fit of both models (below the next chunk), we see that the logistic regression fits a bit better to the whole sample, with 57.6% of success in classifying sample units as respondents vs non-respondents. However, the difference is almost negligible. Moreover, a 58% success in classifying is a rather poor model (by chance we would already expect to correctly classify 50%).
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -729,19 +735,21 @@ train.correct.logreg <- table(data.nonresponse.model$response, data.nonresponse.
 
 train.correct.lasso <- table(data.nonresponse.model$response, data.nonresponse.model$predicted.category.lasso) %>% diag() %>% sum()/nrow(data.nonresponse.model)
 
-c(train.correct.logreg, train.correct.lasso)
+c(train.correct.logreg = train.correct.logreg, train.correct.lasso = train.correct.lasso)
 
 ```
 
+The two chunks below compute the cross-validated ratio of correctly classified units. We would expect these to be lower than the successfuly classified units for the whole sample. This is because cross-validation is a resampling method. We use it to get an idea of how our estimates (e.g. ratio of correctly classified units) would fit the whole statistical population (and not only the sample at hand). 
 
-CV log reg
+Cross-validated ratio of correctly classified units would vary each time we run the procedure. This will not happen here because I set a seed for random procedures at the beginning or the script. We observe that, for both methods, the cross-validated ratio of correctly classified units is slightly lower than the estimate for our sample. Also, both methods have a very similar predictive capacity. 
+
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
 folds <- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, returnTrain = FALSE)
 
 formula. <- as.formula("response ~ type + access + physa + littera + vandaa")
 
-  success.rate <- vector()
+  success.rate.logreg <- vector()
 
 for(i in 1:length(folds)){
   
@@ -759,23 +767,22 @@ for(i in 1:length(folds)){
   
   temp.predicted <- ifelse(temp.predicted > 0.5, 1, 0)
   
-  success.rate <- c(success.rate, table(temp.predicted, temp.test.data$response) %>% diag() %>% sum()/nrow(temp.test.data) )
+  success.rate.logreg <- c(success.rate.logreg, table(temp.predicted, temp.test.data$response) %>% diag() %>% sum()/nrow(temp.test.data) )
   
   
 }
 
-  cv.success.log.reg <- success.rate %>% sum()/length(success.rate)
+  cv.success.log.reg <- success.rate.logreg %>% sum()/length(success.rate.logreg)
 
-  rm(train.folds, temp.train.data, temp.test.data, temp.log.reg.m, temp.predicted, success.rate)
+  rm(train.folds, temp.train.data, temp.test.data, temp.log.reg.m, temp.predicted)
 
     
 ```
 
 
-CV glmnet
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-  success.rate <- vector()
+  success.rate.glmnet <- vector()
 
 for(i in 1:length(folds)){
   
@@ -797,65 +804,62 @@ for(i in 1:length(folds)){
   
   temp.predicted <- ifelse(temp.predicted > 0.5, 1, 0)
   
-  success.rate <- c(success.rate, table(temp.predicted, temp.test.y) %>% diag() %>% sum()/nrow(temp.test.data) )
+  success.rate.glmnet <- c(success.rate.glmnet, table(temp.predicted, temp.test.y) %>% diag() %>% sum()/nrow(temp.test.data) )
   
 }
 
-  cv.success.glmnet <- success.rate %>% sum()/length(success.rate)
+  cv.success.glmnet <- success.rate.glmnet %>% sum()/length(success.rate.glmnet)
 
   rm(t, train.folds, temp.train.data, temp.train.y, temp.test.data,
-     tempt.test.y, temp.glmnet.m, temp.predicted, success.rate)  
+     tempt.test.y, temp.glmnet.m, temp.predicted)  
+  
+  c(cv.success.log.reg = cv.success.log.reg, cv.success.glmnet = cv.success.glmnet)
   
 ```
 
+If we wanted to do an adjustment directly using the estimated propensity scores and without computing adjustment classes, we would just use the inverse of the estimated propensities as the non-response weights. It would be a good idea to use the Lasso predictions as these are less sparce than those from the logistic regression. Therefore, we might have less variance inflation with (almost) the same expected reduction in bias.
 
-Glmnet alternative
+If we had no information about population estimates, we would end the weighting procedure here. The 'final weight' would be the multiplicaiton of both base scaled weight and the scaled non-response weight. I will call this new weights 'final weights' although we still have to perform adjustments to them and so will not really be 'final'. 
 
+First I will include the computed non-response weights using adjustment classes to the main 'data' dataset. Then I will drop all non-respondents. This is because we are not going to use them any more in the next steps of our analysis. After that, I will scale the non-response weights to the sample of respondents and multiply the (scaled) design weights and the (scaled) non-response weights. 
 
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
+data %<>%
+  left_join(data.nonresponse.model %>% select(idno, nonresp.weight),
+            by = "idno")
 
+data %<>%
+  filter(response == 1) %>%
+  mutate(nonresp.weight.scaled = nonresp.weight/mean(nonresp.weight),
+         final.weight = base.weight.scaled * nonresp.weight.scaled)
 
-
-
-
-
-
-
-```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
-
-
-
-library(cvAUC)
-
-ci.cvAUC(predicted.log, data.nonresponse.model$response, folds = flds, confidence = 0.95)
-
-```
-
-
-
-
-
-
-```{r, eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}
-
-cvAUC
-ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
-
-mod_binomial <- train(response ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="glm", family="binomial", trControl = ctrl)
-
-predicted <- mod_binomial$finalModel$fitted.values
-
-predicted. <- function(t) ifelse(predicted > t , 1,0)
-
-confusionMatrix(predicted.(0.5), data.nonresponse.model$response)
-
-mod_rf <- train(as.factor(response) ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="rf",  trControl = ctrl)
+rm(data.nonresponse.model, x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
+   glm.cv.model, i, log.reg.m, predicted.lasso, predicted.log, predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)
 
 ```
-
 
 
 ## Step 3: Use of auxiliary data
+
+In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to 'correct' our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input ('final') weights but reproduce the population information exactly. Valliant et al 2013 explain that using the previous 'final' weights as input for the calibration step allows us to 'borrow' good estiamtion properties from those. 
+
+An important difference between this step of using auxiliary data for calibration and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general. 
+
+Here I will calibrate weights using a 'raking' procedure (explained in Valliant el al 2013 page 358). A practical difference between this method and other ones is that it does not requiere information on cross-stratum categories but just marginal population counts. In other words, we do not need the information from crossing several variables.
+
+ESS: 'The post-stratification weights are obtained by adjusting the design weights in such a way that they will replicate the distribution of the cross-classification of age group, gender, and education in the population and the marginal distribution for region in the population. The population distributions for the adjusting variables were obtained from the European Union Labour Force Survey.'
+
+'For most countries and rounds there is control data for gender, age, education and region.
+However, given the available control data it was not in all cases deemed appropriate
+to adjust the weighted sample data to the joint distribution of gender, age, education
+and region. Hence, it was decided not to use a straightforward post-stratication, but
+a raking procedure instead.'
+
+'The raking procedure uses iterative post-stratication to
+match weighted marginal distributions of a sample to known population margins. The
+software used to calculate the weights is R (R Core Team, 2013) applying the survey
+package, (Lumley, 2013).'
 
 ## Step 4: Analysis of weight variability
 
