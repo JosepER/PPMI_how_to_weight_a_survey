@@ -17,6 +17,7 @@ library(MASS)
 library(randomForest)
 library(glmnet)
 library(caret)
+library(survey)
 library(forcats)
 library(foreign)
 library(magrittr)
@@ -120,7 +121,7 @@ resp.x <- c("vote", "prtvtbgb",
             "prtclbgb", "prtdgcl",
             "ctzcntr", "ctzshipc",
          "brncntr","cntbrthc",
-         "gndr", "agea", "hhmmb","eisced",
+         "gndr", "agea", "hhmmb","eisced", "region",
          "pdwrk", "edctn", "uempla", "uempli", "rtrd",
          "wrkctra", "hinctnta")
 
@@ -830,7 +831,7 @@ data %<>%
             by = "idno")
 
 data %<>%
-  filter(response == 1) %>%
+  filter(response == 1, !is.na(base.weight.scaled)) %>%
   mutate(nonresp.weight.scaled = nonresp.weight/mean(nonresp.weight),
          final.weight = base.weight.scaled * nonresp.weight.scaled)
 
@@ -840,13 +841,39 @@ rm(data.nonresponse.model, x.matrix, cv.success.glmnet, cv.success.log.reg, fold
 ```
 
 
-## Step 3: Use of auxiliary data
+## Step 3: Use of auxiliary data for weight calibration 
 
 In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to 'correct' our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input ('final') weights but reproduce the population information exactly. Valliant et al 2013 explain that using the previous 'final' weights as input for the calibration step allows us to 'borrow' good estiamtion properties from those. 
 
 An important difference between this step of using auxiliary data for calibration and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general. 
 
-Here I will calibrate weights using a 'raking' procedure (explained in Valliant el al 2013 page 358). A practical difference between this method and other ones is that it does not requiere information on cross-stratum categories but just marginal population counts. In other words, we do not need the information from crossing several variables.
+Here I will calibrate weights using a 'raking' procedure (explained in Valliant el al 2013 page 358). A practical difference between this method and other ones is that it does not requiere information on cross-classification categories but just marginal population counts. In other words, we do not need the information from crossing several variables (although we can use it if available). As explained by Lumley (2010, page 139), the process is very much iterative. It involves post-stratifying on each set of variables in turn, and repeating the process until the weights stop changing. 
+
+The ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document [Documentation of ESS
+Post-Stratification Weights](http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf)
+
+First we will compute the interaction between gender and age with the categories used for ESS calibration. 
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+data %<>%
+  mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99))) %>%
+         unite(col = gender_age_rec, gndr, agea_rec, remove = F) 
+
+```
+
+
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+svydesign(ids = ~ 0, weights = ~final.weight, data = data)
+
+
+```
+
+
+
+
+
 
 ESS: 'The post-stratification weights are obtained by adjusting the design weights in such a way that they will replicate the distribution of the cross-classification of age group, gender, and education in the population and the marginal distribution for region in the population. The population distributions for the adjusting variables were obtained from the European Union Labour Force Survey.'
 
