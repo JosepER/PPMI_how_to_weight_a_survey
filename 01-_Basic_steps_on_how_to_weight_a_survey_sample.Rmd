@@ -17,7 +17,9 @@ library(MASS)
 library(randomForest)
 library(glmnet)
 library(caret)
+library(RCurl)
 library(survey)
+library(readxl)
 library(forcats)
 library(foreign)
 library(magrittr)
@@ -862,6 +864,37 @@ data %<>%
 
 ```
 
+The total number of weighted units in each of the categories we will use for calibration can be seen in the tables below.
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+data$agea %>% is.na() %>% sum() # Need to address these 20 nas. DELETE!
+
+data %>%
+  group_by(gender_age_rec) %>%
+  summarise(total_n_sample = sum(final.weight))
+
+data %>%
+  group_by(region) %>%
+  summarise(total_n_sample = sum(final.weight))
+
+```
+
+Now we import Eurostat data stored in github.
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+mygithub.url <- getURL("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Age%20by%20gender%20.xlsx")
+
+age.gender.eurostat <- download.file(mygithub.url,"myfile", method="curl")
+
+
+load(url(mygithub.url))
+
+
+eurostat.age.gender <- read_excel(path = paste(mygithub.url, "Age by gender.xlsx", sep = ""),  sheet = "Age_gender")
+
+```
 
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
