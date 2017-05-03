@@ -1,12 +1,15 @@
 ---
 title: "(Very) basic steps on how to weight a survey sample"
-subtitle: "An explained example with R code"
 author: "JosepER"
-output: html_notebook
+subtitle: An explained example with R code
+output:
+  html_document: default
+  html_notebook: default
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
+library(MASS)
 library(glmnet)
 library(caret)
 library(forcats)
@@ -457,7 +460,9 @@ The first approach has the advantage of being more simple. However, computing a 
 
 The second approach relies on the modelling skills of the researcher computing the weights. In order to estimate the proability of response we need to predict it. 'Predictive modelling' is slightly different than the usual 'inference modelling'. Here we are not interested in understanding the causes of differences in response propensities. We are just interested in predicting these. Therefore, we should take a 'data driven' approach that differs from those we usually see in social sciences. For an excellent introduction to 'predictive statistics' you can check the free book ['An Introduction to Statistical Learning' by James et al.](http://www-bcf.usc.edu/~gareth/ISL/).
 
-This is not a guide on 'predictive modelling'. However, it might be worth it to very briefly explain the basic principle behind it. We should try to build a model which is able to estimate the probability using only 'relevant' information and excluding 'noise' from the model. Therefore, a predictive model should be fitting the observed data well enough but at the same time not too specific to it.
+This is not a guide on 'predictive modelling'. However, it might be worth it to very briefly explain the basic principle behind it. We should try to build a model which is able to estimate the probability using only 'relevant' information and excluding 'noise' from the model. Therefore, a predictive model should be fitting the observed data well enough but at the same time not too specific to it. 
+
+For this specific case of non-response weighting, we are especially interested in using propensity predictors which are related to both the response propensity and our dependent variables.
 
 Here we will use the paradata information to model the probability of response. The variables describing the type of house and the immediate vicinity around houses have a relatively small number of missing values (~ 8%) these missings seem to be related (i.e. all columns missing). Those sampled units that have missing values on all these paradata variables are always non-respondents. It would be useful to know why this pattern exists. I would guess that these are sampled units which interviewers could not reach for some reason. For this analysis, we will not use these units with missing values in ALL paradata variables. This should only result in a linear transformation of the estimated probabilities of response. 
 
@@ -480,38 +485,47 @@ data.nonresponse.model %<>%
 
 indep.vars.nonresponse <- c("type", "access", "physa", "littera", "vandaa")
 
-data.nonresponse.model[,indep.vars.nonresponse]  %<>% map(function(x){as.character(x)})
+data.nonresponse.model[,c("type", "access")]  %<>% map(function(x){as.character(x)})
 
 data.nonresponse.model %>% map(function(x){sum(is.na(x))})
 
-for(i in indep.vars.nonresponse) {
+# Missing category for missings in multinomial variables.
+  
+for(i in c("type", "access")) {
   data.nonresponse.model[[i]][is.na(data.nonresponse.model[[i]])] <- "Missing"
+  
+}
+
+# Mean imputation for ordinal variables.
+
+for(i in c("physa", "littera", "vandaa")) {
+  data.nonresponse.model[[i]][is.na(data.nonresponse.model[[i]])] <- levels(data.nonresponse.model[[i]])[median(data.nonresponse.model[[i]] %>% as.numeric(), na.rm = T) ] 
   
 }
 
 data.nonresponse.model %<>%
   mutate(response = as.numeric(as.numeric(interva) == 1))
 
-mean(data.nonresponse.model$response)
+mean(data.nonresponse.model$response) # Create a new paragraph for the adjustment of the log reg and delete this.
 
 ```
 
-Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights 
-
-
-explain that Valliant et al recommend log reg + grouping. However, glmnet might be even better.
+Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities. 
 
 
 #### Logistic regression 
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
+In order to do a Logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the 'lm' function. 
+
+
+```{r,  warning=FALSE, message=FALSE}
 formula <- as.formula("response ~ type + access + physa + littera + vandaa")
 
 options(na.action = 'na.pass')
 
 x.matrix <- model.matrix(formula, data = data.nonresponse.model)[, -1]
 
-log.reg.m <- lm(formula,  
+log.reg.m <- glm(formula,  
   data = data.nonresponse.model,
   family = "binomial")
 
@@ -519,7 +533,144 @@ coef.response.log <- coef(log.reg.m)
 
 predicted.log <- log.reg.m$fitted.values
 
+data.nonresponse.model$predicted.log <- predicted.log
+
+predicted.log %>% head()
+
 ```
+
+```{r,  warning=FALSE, message=FALSE}
+
+rm(coef.response.log, formula, i, log.reg.m)
+```
+
+
+#### Creating non-response adjustment classes
+
+Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.
+
+Looking at the distribution of estimated probabilities of response, we observe a large majority of values between `r quantile(probs = 0.2) %>% round(1)` and `r quantile(probs = 0.9) %>% round(1)`. However, there are several outliers at both ends of the distribution. 
+
+As there is not so much dispersion in values in the middle of the distribution, creating classess accoring to quintiles might not be the best way to account for differences in estimated response propensities. However, other methods might create classess which are too specific to outliers. This is kind of a bias-variance trade off. If we fit broad classes which encompass very different estimated probabilities within them, we will be adjusting less and so keeping more bias in our estiamtes. If we create tight classes capturing these outliers, then we will have  large differences in weights and so more variance in our estimates. 
+
+```{r,  warning=FALSE, message=FALSE}
+
+predicted.log %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
+
+```
+
+These are the 5 classes created using 20th, 40th, 60th and 80th quintiles.
+
+```{r,  warning=FALSE, message=FALSE}
+
+data.nonresponse.model$predicted.class <- cut(x = data.nonresponse.model$predicted.log, breaks = c(0,quantile(predicted.log, probs = seq(0,1,0.2))[-1] ))
+
+data.nonresponse.model$predicted.class %>% levels()
+
+```
+
+And below there is a summary of the estimated propensities included in each of them (in boxplots).We can see that the first and last groups have more dispersion in propensities. The middle three groups have very little dispersion and are similar between them.
+
+```{r,  warning=FALSE, message=FALSE}
+
+ggplot(data.nonresponse.model, aes(x = predicted.class, y = predicted.log)) +
+  geom_boxplot()
+
+
+```
+
+
+
+
+
+
+
+
+To compute the non-response weights, we can use the mean estimated probability of response in each class. 
+
+```{r,  warning=FALSE, message=FALSE}
+
+data.nonresponse.model %>%
+  group_by(predicted.class) %>%
+  summarise(mean.prob = mean(predicted.log) %>% round(4))
+
+```
+
+And then we can compute the non-response weight as the inverse of the mean probabilities in each class. 
+
+```{r,  warning=FALSE, message=FALSE}
+data.nonresponse.model %<>% left_join(
+data.nonresponse.model %>%
+  group_by(predicted.class) %>%
+  summarise(mean.prob = mean(predicted.log) ), by = "predicted.class")
+
+data.nonresponse.model %<>%
+  mutate(nonresp.weight = round(1/mean.prob, 4) )
+
+data.nonresponse.model$nonresp.weight %>% unique %>% sort
+
+```
+
+#### Testing non-response adjustment classes
+
+After creating the classes, a good practice would be to check for covariate balance. This procedure is explained in pag. 330 of Valliant et al. Units in the same class should have similar values in covariates. At the same time, we would ideally find differencess between classes. In plain words, here we would check if classe are made of homogeneous units (within-class check) and if classes really distinguish different profiles of these (between-class check). For the within-group check, we are especially interested in checking if profiles of respondents and non-respondents within each class are similar. 
+
+In my opinion, the best way of doing this analysis is by fitting two different regressions for each covariate. As an example I will do the balance analysis for the ordinal covariate *physa*. In a real analysis this should be repeated for all covariates.
+
+For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*), I will use al ordered logistic regression. An alternative would be to treat the covariate as a continous varaible and use an OLS regression. 
+
+The variable *physa* compares the 'Overall physical condition building/house'. The variable is negativelly coded so larger values mean worse physical condition. The coefficients of the ordered logistic regression show that the larger the estimated propensity, the smaller the probability of being in bad physical conditions. Therefore, people in houses with worse physical conditions would have smaller response propensity and so be underrepresented in our sample. From the coefficients below we see that the classes we have created for non-response adjustment somehow explain differences in our analysed covariate. However, ideally we would have a more clear effect of classes on our covariate. We see that the second adjustment class created (that for estimated propensities between 0.41 and 0.443) actually has larger probabilities of having worse physical conditions than the base category (0 to 0.41). At the same time, the third and fourth categories (0.443 to 0.459) and (0.459 to 0.485) have very similar coefficients, which might indicate that they do not really distinguish different classes of sampled units. 
+
+
+```{r,  warning=FALSE, message=FALSE}
+
+formula. <- as.formula("physa ~ predicted.class")
+
+test.between.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
+
+ctable.between <- coef(summary(test.between.model))
+
+p <- pnorm(abs(ctable.between[, "t value"]), lower.tail = FALSE) %>% round(4)
+
+ctable.between <- cbind(ctable.between, "p value" = p)
+
+ctable.between
+
+```
+
+For the within-class check, we can extend our model to include interactions between class and response. This will check if, within a non-response class, there are differences between respondents and non-respondents in our covariate *physa* (ideally they wouldn't be and we would not find them).
+
+In this second test (see coefficients below) we see that one of the interactions has a significant coefficient at 5% confidence level. Ideally, all interaction terms would be non-significant, meaning that we do not observe within-group differences between respondents and non-respondents in our covariates. A way of dealing with this situation with one significant coefficient would be to explore other ways of spliting units into classes. However, as explained before, these other categorisations would have drawbacks in terms of inflated variance. Moreover, if we have a large number of classes and covariates, we would expect to find significant coefficients just by chance. Therefore, as long as these unbalances are not extended most classes and covariates, reporting these unbalances should be enough.
+
+
+```{r,  warning=FALSE, message=FALSE}
+
+formula. <- as.formula("physa ~ response + predicted.class + response * predicted.class")
+
+test.within.model <- polr(formula = formula., data = data.nonresponse.model, method = "logistic")
+
+ctable.within <- coef(summary(test.within.model))
+
+p <- pnorm(abs(ctable.within[, "t value"]), lower.tail = FALSE) %>% round(4)
+
+ctable.within <- cbind(ctable.within, "p value" = p)
+
+ctable.within
+
+rm(formula., test.within.model, p)
+
+```
+
+
+
+
+
+Adjust log reg!
+
+  
+
+
+Glmnet alternative
 
 
 
@@ -553,7 +704,6 @@ predicted. <- function(t) ifelse(predicted > t , 1,0)
 confusionMatrix(predicted.(0.5), data.nonresponse.model$response)
 
 mod_rf <- train(as.factor(response) ~ type + access + physa + littera + vandaa,  data=data.nonresponse.model, method="rf",  trControl = ctrl)
-
 
 ```
 
