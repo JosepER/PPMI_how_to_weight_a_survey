@@ -907,33 +907,147 @@ age.gender.eurostat %<>%
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-region.eurostat <- read_delim("data/Eurostat/Nuts2byage.csv", delim = ";")
+region.eurostat <- read_delim("data/Eurostat/Nuts2byage.csv", delim = ",")
 
-region.eurostat %>%
-  write_csv("")
+region.eurostat %<>%
+  gather(key = age, value = population, -Country) 
+
+region.eurostat %<>%
+  group_by(Country) %>%
+  summarise(pop_sum = sum(population) )
+  
+```
+
+I will now scale the Eurostat data to our sample size. The idea is to obtain the weights that make our sample proportions look like those in Eurostat. For these, we will calculate how many respondents in our sample should pertain to each category if we had Eurostat proportions. We will use our sample size based only on (weighted) completed observations in our post-stratification adjustment variables (age, gender and region).
+
+Total (weighted) observations in our sample with completed observations:
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+data.calibration <- data %>%  
+  filter(!is.na(agea_rec), !is.na(gndr), !is.na(region))
+
+weighted.pop <- sum(data.calibration$final.weight)
+
+weighted.pop
+
+```
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+age.gender.eurostat %<>%
+  gather(key = age, value = population, -SEX) %>%
+  unite(col = gender_age_rec, SEX, age) 
+
+total.population <- age.gender.eurostat$population %>% 
+  sum()
+
+age.gender.eurostat %<>%
+  mutate(Freq = round(population/total.population * weighted.pop, 0) ) %>%
+  select(-population)
+
+age.gender.eurostat$gender_age_rec <- c("Female_(14,34]", "Male_(14,34]",
+                                        "Female_(34,54]", "Male_(34,54]",
+                                        "Female_(54,99]", "Male_(54,99]")
+
+rm(total.population)
+
+```
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+total.population <- region.eurostat$pop_sum %>%
+  sum()
+
+region.eurostat %<>%
+  mutate(Freq = round(pop_sum/total.population * weighted.pop, 0) ) %>%
+  select(-pop_sum)
+
+names(region.eurostat)[[1]] <- "region" 
+
+region.eurostat$region[region.eurostat$region == "East Midlands (UK)"] <- "East Midlands (England)"
+region.eurostat$region[region.eurostat$region == "North East (UK)"] <- "North East (England)"
+region.eurostat$region[region.eurostat$region == "North West (UK)"] <- "North West (England)"
+region.eurostat$region[region.eurostat$region == "Northern Ireland (UK)"] <- "Northern Ireland"
+region.eurostat$region[region.eurostat$region == "South East (UK)"] <- "South East (England)"
+region.eurostat$region[region.eurostat$region == "South West (UK)"] <- "South West (England)"
+region.eurostat$region[region.eurostat$region == "West Midlands (UK)"] <- "West Midlands (England)"
+region.eurostat$region[region.eurostat$region == "Yorkshire and The Humber"] <- "Yorkshire and the Humber"
+
+
+```
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+if( identical(region.eurostat$region %>% unique %>% sort, data.calibration$region %>% as.character() %>% unique %>% sort) != T) {
+    stop("Levels in region variable have to be the the same in the calibration and dataset used for population frequencies")
+}
+
+if( identical(age.gender.eurostat$gender_age_rec %>% unique %>% sort, data.calibration$gender_age_rec %>% as.character() %>% unique %>% sort) != T) {
+    stop("Levels in age by gender categories variable have to be the the same in the calibration and dataset used for population frequencies")
+}
 
 ```
 
 
-age.gender.eurostat %>%
-  write_csv("data/Eurostat/Agebygender_demo_pjangroup.csv")
 
-age.region <- read_delim("data/Eurostat/Nuts2byage.csv", delim = ";")
 
-age.region %<>% apply(2, function(x){str_replace_all(x, pattern = "[.]", "")})
+Now it's time to calibrate! 
 
-age.region %<>%
-  as_data_frame()
+Explain a bit raking and stuff!
 
-age.region %<>%
-  gather(key = years, value = population, -Country)
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-age.region %>%
-  group_by(Country) %>%
-  summarise(population_15over = sum(population))
+ess.svydesign <- svydesign(ids = ~ 0, weights = ~final.weight, data = data.calibration)
 
-age.gender.eurostat$Value <-  grep(x = age.gender.eurostat$Value, pattern = ".", replacement = "")
+ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec), 
+     population = list(region.eurostat, age.gender.eurostat))
 
+```
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+raked.weights <- ess.raked$postStrata[[1]][[1]] %>% attributes() %>% .[["weights"]]
+
+data.calibration$raked.weights <- raked.weights
+
+```
+
+
+Test calibrated weights 
+
+Age by gender
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+left_join(
+data.calibration %>%
+  group_by(gender_age_rec) %>%
+  summarise(calibrated.sample.pop = sum(raked.weights)),
+age.gender.eurostat)
+
+```
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+left_join(
+data.calibration %>%
+  group_by(region) %>%
+  summarise(calibrated.sample.pop = sum(raked.weights)),
+region.eurostat)
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+
+
+
+
+```
 
 
 
@@ -968,11 +1082,6 @@ read_delim("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/d
 ```
 
 
-```{r,  echo=TRUE, warning=FALSE, message=FALSE}
-svydesign(ids = ~ 0, weights = ~final.weight, data = data)
-
-
-```
 
 
 
