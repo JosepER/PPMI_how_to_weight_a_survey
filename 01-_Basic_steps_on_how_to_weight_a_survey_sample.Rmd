@@ -865,7 +865,7 @@ data %<>%
 
 ```
 
-The total number of weighted units in each of the categories we will use for calibration can be seen in the tables below.
+These are the total number of weighted units in each of the categories we will use for calibration can be seen in the tables below.
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
