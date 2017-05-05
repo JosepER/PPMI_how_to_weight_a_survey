@@ -14,10 +14,8 @@ output:
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 library(MASS)
-library(randomForest)
 library(glmnet)
 library(caret)
-library(RCurl)
 library(survey)
 library(readxl)
 library(stringr)
@@ -990,15 +988,20 @@ if( identical(age.gender.eurostat$gender_age_rec %>% unique %>% sort, data.calib
 ```
 
 
-
-
 Now it's time to calibrate! 
 
 Explain a bit raking and stuff!
 
+I do it twice. Once to reproduce ESS weights and the other to compute my own weights which also include nr modelling. 
+
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-ess.svydesign <- svydesign(ids = ~ 0, weights = ~final.weight, data = data.calibration)
+our.svydesign <- svydesign(ids = ~ 0, weights = ~final.weight, data = data.calibration)
+
+ess.svydesign <- svydesign(ids = ~ 0, weights = ~base.weight, data = data.calibration)
+
+our.raked <- rake(our.svydesign, sample.margins = list(~region, ~gender_age_rec), 
+     population = list(region.eurostat, age.gender.eurostat))
 
 ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec), 
      population = list(region.eurostat, age.gender.eurostat))
@@ -1008,12 +1011,15 @@ ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec)
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-raked.weights <- ess.raked$postStrata[[1]][[1]] %>% attributes() %>% .[["weights"]]
+raked.weight <- our.raked$postStrata[[1]][[1]] %>% attributes() %>% .[["weights"]]
 
-data.calibration$raked.weights <- raked.weights
+ess.raked.weight <- ess.raked$postStrata[[1]][[1]] %>% attributes() %>% .[["weights"]]
+
+data.calibration$ess.raked.weight <- ess.raked.weight
+
+data.calibration$raked.weight <- raked.weight
 
 ```
-
 
 Test calibrated weights 
 
@@ -1024,7 +1030,7 @@ Age by gender
 left_join(
 data.calibration %>%
   group_by(gender_age_rec) %>%
-  summarise(calibrated.sample.pop = sum(raked.weights)),
+  summarise(calibrated.sample.pop = sum(raked.weight)),
 age.gender.eurostat)
 
 ```
@@ -1034,54 +1040,44 @@ age.gender.eurostat)
 left_join(
 data.calibration %>%
   group_by(region) %>%
-  summarise(calibrated.sample.pop = sum(raked.weights)),
+  summarise(calibrated.sample.pop = sum(raked.weight)),
 region.eurostat)
 
 ```
 
-
+EXPLAIN: Merge calibrated weights back to the original dataset. Use final weights (sampling * non-response weights) for those units with missings in calibration vars. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
+data %<>%
+  left_join(data.calibration %>% select(idno, raked.weight, ess.raked.weight), by = "idno")
 
+data$raked.weight[is.na(data$raked.weight)] <- data$final.weight[is.na(data$raked.weight)]
 
-
+data$ess.raked.weight[is.na(data$ess.raked.weight)] <- data$final.weight[is.na(data$ess.raked.weight)]
 
 ```
 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
+left_join(
+data %>% select(idno, raked.weight, ess.raked.weight),
+original.weights %>% select(idno, pspwght)
+) %>% head(15)
 
-```{r,  eval = FALSE, echo=TRUE, warning=FALSE, message=FALSE}
-
-age.gender.eurostat <- read_csv("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender_demo_pjangroup.csv")
-
-
-
-mygithub.url <- getURL("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender_demo_pjangroup.csv", delim = ",")
-
-
-mygithub.url <- getURL("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv")
-
-age.gender.eurostat <- download.file("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv","data/Agebygender.csv", method="wininet")
-
-
-age.gender.eurostat <- download.file("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv","data/Agebygender.csv", method="wininet")
-
-
-
-load(url(mygithub.url))
-
-
-eurostat.age.gender <- read_excel(path = paste(mygithub.url, "Age by gender.xlsx", sep = ""),  sheet = "Age_gender")
-
-age.gender.eurostat <-read.csv(text = mygithub.url)
-
-read_delim("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv", delim = ";")
-
-read_delim("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv", delim = ";")
 ```
 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+left_join(
+data %>% select(idno, raked.weight, ess.raked.weight),
+original.weights %>% select(idno, pspwght)
+) %>%
+  mutate(diff.myraked = pspwght-raked.weight,
+         diff.essraked = pspwght-ess.raked.weight) %>%
+  summarise(sse.myraked = sum(diff.myraked ^ 2),
+            sse.essraked = sum(diff.essraked ^ 2))
 
+```
 
 
 
