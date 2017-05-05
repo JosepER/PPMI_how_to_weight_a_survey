@@ -885,10 +885,27 @@ Now we import Eurostat data stored in github.
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-age.gender.eurostat <- read_delim("data/Eurostat/Agebygender.csv", delim = ";")
+age.gender.eurostat <- read_delim("data/Eurostat/Agebygender_demo_pjangroup.csv", delim = ",")
 
-age.gender.eurostat$Value <-  str_replace_all(age.gender.eurostat$Value, pattern = "[.]", "")
-  
+age.gender.eurostat %>%
+  write_csv("data/Eurostat/Agebygender_demo_pjangroup.csv")
+
+age.gender.eurostat %<>%
+  spread(key = Age, value = Value)
+
+age.gender.eurostat %<>%
+  mutate(`15to34` = `From 15 to 19 years` + `From 20 to 24 years` +  `From 25 to 29 years` +
+           `From 30 to 34 years`,
+         `35to54` = `From 35 to 39 years` + `From 40 to 44 years` + `From 45 to 49 years` + 
+           `From 50 to 54 years`,
+         `55to99` =  `From 55 to 59 years` + `From 60 to 64 years` + `From 65 to 69 years` +
+           `From 70 to 74 years` + `75 years or over`) %>%
+  select(SEX, `15to34`:`55to99`)
+
+```
+
+
+
 age.gender.eurostat %>%
   write_csv("data/Eurostat/Agebygender_demo_pjangroup.csv")
 
@@ -908,13 +925,16 @@ age.region %>%
 
 age.gender.eurostat$Value <-  grep(x = age.gender.eurostat$Value, pattern = ".", replacement = "")
 
-```
 
 
 
 ```{r,  eval = FALSE, echo=TRUE, warning=FALSE, message=FALSE}
 
-mygithub.url <- getURL("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv")
+age.gender.eurostat <- read_csv("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender_demo_pjangroup.csv")
+
+
+
+mygithub.url <- getURL("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender_demo_pjangroup.csv", delim = ",")
 
 
 mygithub.url <- getURL("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv")
