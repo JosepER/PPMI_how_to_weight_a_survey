@@ -20,6 +20,7 @@ library(caret)
 library(RCurl)
 library(survey)
 library(readxl)
+library(stringr)
 library(forcats)
 library(foreign)
 library(magrittr)
@@ -837,8 +838,8 @@ data %<>%
   mutate(nonresp.weight.scaled = nonresp.weight/mean(nonresp.weight),
          final.weight = base.weight.scaled * nonresp.weight.scaled)
 
-rm(data.nonresponse.model, x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
-   glm.cv.model, i, log.reg.m, predicted.lasso, predicted.log, predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)
+rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
+   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)
 
 ```
 
@@ -884,9 +885,45 @@ Now we import Eurostat data stored in github.
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-mygithub.url <- getURL("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Age%20by%20gender%20.xlsx")
+age.gender.eurostat <- read_delim("data/Eurostat/Agebygender.csv", delim = ";")
 
-age.gender.eurostat <- download.file(mygithub.url,"myfile", method="curl")
+age.gender.eurostat$Value <-  str_replace_all(age.gender.eurostat$Value, pattern = "[.]", "")
+  
+age.gender.eurostat %>%
+  write_csv("data/Eurostat/Agebygender_demo_pjangroup.csv")
+
+age.region <- read_delim("data/Eurostat/Nuts2byage.csv", delim = ";")
+
+age.region %<>% apply(2, function(x){str_replace_all(x, pattern = "[.]", "")})
+
+age.region %<>%
+  as_data_frame()
+
+age.region %<>%
+  gather(key = years, value = population, -Country)
+
+age.region %>%
+  group_by(Country) %>%
+  summarise(population_15over = sum(population))
+
+age.gender.eurostat$Value <-  grep(x = age.gender.eurostat$Value, pattern = ".", replacement = "")
+
+```
+
+
+
+```{r,  eval = FALSE, echo=TRUE, warning=FALSE, message=FALSE}
+
+mygithub.url <- getURL("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv")
+
+
+mygithub.url <- getURL("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv")
+
+age.gender.eurostat <- download.file("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv","data/Agebygender.csv", method="wininet")
+
+
+age.gender.eurostat <- download.file("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv","data/Agebygender.csv", method="wininet")
+
 
 
 load(url(mygithub.url))
@@ -894,6 +931,11 @@ load(url(mygithub.url))
 
 eurostat.age.gender <- read_excel(path = paste(mygithub.url, "Age by gender.xlsx", sep = ""),  sheet = "Age_gender")
 
+age.gender.eurostat <-read.csv(text = mygithub.url)
+
+read_delim("https://raw.github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv", delim = ";")
+
+read_delim("https://github.com/JosepER/PPMI_how_to_weight_a_survey/blob/master/data/Eurostat/Agebygender.csv", delim = ";")
 ```
 
 
