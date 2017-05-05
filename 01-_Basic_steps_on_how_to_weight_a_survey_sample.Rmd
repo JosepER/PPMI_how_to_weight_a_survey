@@ -3,12 +3,12 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
-  html_notebook:
-    toc: true
-    theme: united
   html_document:
-    toc: true
     theme: united
+    toc: yes
+  html_notebook:
+    theme: united
+    toc: yes
 ---
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -242,7 +242,8 @@ These are our y variables:
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-data[resp.y]
+data[resp.y] %>%
+  head(10)
 ```
 
 
@@ -254,7 +255,8 @@ Our survey contains variables which give information about the data collection p
 * __prob__: Probability of being included in the sample (i.e. approached for survey).
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-data[vars.sample.data]
+data[vars.sample.data] %>%
+  head(10)
 ```
 
 The dataset also contains variables for all sampled units (i.e. respondents and non-respondents). These give information  about the events that occurred during the data collection process. We will use these variables as covariates during the computation of **Non-response weights** in step two.  
@@ -271,7 +273,8 @@ The dataset also contains variables for all sampled units (i.e. respondents and 
 * __vandaa__: Interviewer assessment of amount of vandalism and graffiti in the immediate vicinity.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-data[vars.paradata] 
+data[vars.paradata] %>%
+  head(10)
 ```
 
 
@@ -300,7 +303,8 @@ Apart from the variables of interest (cigarette and alcohol consumption) our dat
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-data[c(resp.id, resp.x)] 
+data[c(resp.id, resp.x)] %>%
+  head(10)
 ```
 
 
@@ -389,16 +393,6 @@ data %>%
 
 The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d_{0}*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-
-data %<>%
-  mutate(base.weight = 1/prob)
-
-data %>%
-  select(prob, base.weight)
-
-
-```
 
 Here we compute the base weight from the probability given in the ESS database.   
 
@@ -408,7 +402,7 @@ data %<>%
   mutate(base.weight = 1/prob)
 
 data %>%
-  select(prob, base.weight)
+  select(prob, base.weight) %>% head(10)
 
 ```
 
@@ -426,7 +420,7 @@ data %>%
   select(idno, base.weight) %>%
   mutate(base.weight.scaled = base.weight/sum(base.weight, na.rm = T)*nrow(data[!is.na(data$prob),])) %>%
   left_join(original.weights %>% select(idno, dweight),
-            by = "idno")
+            by = "idno") %>% head(10)
 
 data %<>%
   mutate(base.weight.scaled = base.weight/sum(base.weight, na.rm = T)*nrow(data[!is.na(data$prob),]))
@@ -1058,6 +1052,8 @@ data$ess.raked.weight[is.na(data$ess.raked.weight)] <- data$final.weight[is.na(d
 
 ```
 
+Compare ESS weight, my reproduction of ESS weight and my raked weights
+
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 left_join(
@@ -1067,6 +1063,8 @@ original.weights %>% select(idno, pspwght)
 
 ```
 
+Obviously, my raked weights tend to be a bit further from ESS than those done only with base/sampling weights
+
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 left_join(
 data %>% select(idno, raked.weight, ess.raked.weight),
@@ -1074,8 +1072,8 @@ original.weights %>% select(idno, pspwght)
 ) %>%
   mutate(diff.myraked = pspwght-raked.weight,
          diff.essraked = pspwght-ess.raked.weight) %>%
-  summarise(sse.myraked = sum(diff.myraked ^ 2),
-            sse.essraked = sum(diff.essraked ^ 2))
+  summarise(sserrors.myraked = sum(diff.myraked ^ 2),
+            sserrors.essraked = sum(diff.essraked ^ 2))
 
 ```
 
