@@ -881,7 +881,7 @@ data %>%
 
 ```
 
-Now we import Eurostat data stored in github.
+Now we import Eurostat data and recode it into ESS adjustment/post-stratification categories.
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -904,6 +904,15 @@ age.gender.eurostat %<>%
 
 ```
 
+
+```{r,  echo=TRUE, warning=FALSE, message=FALSE}
+
+region.eurostat <- read_delim("data/Eurostat/Nuts2byage.csv", delim = ";")
+
+region.eurostat %>%
+  write_csv("")
+
+```
 
 
 age.gender.eurostat %>%
