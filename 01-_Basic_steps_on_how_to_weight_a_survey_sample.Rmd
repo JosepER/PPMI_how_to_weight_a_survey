@@ -51,7 +51,7 @@ And the book accompaining the R 'survey' package:
 
   * Lumley (2010) *Complex Surveys: A Guide to Analysis Using R*. New Jersey: John Wiley & Sons Inc.
 
-It might be also worth keeping an eye on the still incipient R package [*srvyr*](https://cran.r-project.org/web/packages/srvyr/index.html) by developed and mantained by Greg Freedman Ellis.
+It might be also worth keeping an eye on the (still incipient) R package [*srvyr*](https://cran.r-project.org/web/packages/srvyr/index.html), developed and mantained by Greg Freedman Ellis.
 
 Note: This guide focuses on surveys based on 'probability sample'.
 These are surveys where all units in our statistical population have a chance of being selected
