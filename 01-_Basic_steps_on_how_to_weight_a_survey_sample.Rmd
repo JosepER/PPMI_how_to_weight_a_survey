@@ -35,11 +35,9 @@ set.seed(456162)
 ### Aim of this guide and further readings
 
 This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that
-there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides   ste and
-intentionally avoids explaining complex or advanced methods. Instead, It aims at providing users with
-a standard way of weighting and a limited number of variations.
+there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides [R code] (https://www.r-project.org/) for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an 'R notebook' format can be found and publicly accessed from the [author's github page](https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd). This text intentionally avoids explaining complex or advanced methods. Instead, It aims at providing users with a standard way of weighting and a limited number of variations.
 
-Next sections will provide a step-by-step 
+Next sections will first give a very broad glimpse at all [main survey weighting steps](#Basic steps in weighting a survey).Then
 
 For more information you can check the following introductory texts:
 
