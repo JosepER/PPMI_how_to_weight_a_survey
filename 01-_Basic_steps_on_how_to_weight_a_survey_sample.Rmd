@@ -3,11 +3,14 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
+  html_document:
+    theme: united
+    toc: yes
   html_notebook:
     theme: united
     toc: yes
-  html_document:
-    theme: united
+  pdf_document:
+    latex_engine: xelatex
     toc: yes
 ---
 
@@ -35,9 +38,9 @@ set.seed(456162)
 ### Aim of this guide and further readings
 
 This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that
-there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides [R code] (https://www.r-project.org/) for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an 'R notebook' format can be found and publicly accessed from the [author's github page](https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd). This text intentionally avoids explaining complex or advanced methods. Instead, It aims at providing users with a standard way of weighting and a limited number of variations.
+there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides [R code] (https://www.r-project.org/) for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an 'R notebook' format can be found and publicly accessed from the [author's github page](https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd). For questions, clarifications or suggestions feel free to contact him at *jespasareig@gmail.com*. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.
 
-Next sections will first give a very broad glimpse at all [main survey weighting steps](#basic steps in weighting a survey).Then
+Next sections will first give a very broad glimpse at all [main survey weighting steps](#basic steps in weighting a survey).The second section deals with importing data into R, data manipulation and briefly [presenting the dataset used for this guide](#exploring and presenting the dataset). Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute [design weights](#step 1: Design weights), [non-response weights](#step 2: Non-response weights) and [calibration weights](#step 3: Use of auxiliary data for weight calibration). 
 
 For more information you can check the following introductory texts:
 
@@ -48,7 +51,7 @@ And the book accompaining the R 'survey' package:
 
   * Lumley (2010) *Complex Surveys: A Guide to Analysis Using R*. New Jersey: John Wiley & Sons Inc.
 
-It is important to note that this guide focuses on surveys based on 'probability sample'.
+Note that this guide focuses on surveys based on 'probability sample'.
 These are surveys where all units in our statistical population have a chance of being selected
 and the probability of selection is known to the researcher. A brief note on how to weight non-probability samples is included at the end of the guide. 
 

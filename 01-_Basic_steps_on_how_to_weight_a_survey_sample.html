@@ -125,7 +125,7 @@ $(document).ready(function () {
 <div id="TOC">
 <ul>
 <li><a href="#introduction">Introduction</a><ul>
-<li><a href="#note-and-bibliography">Note and bibliography</a></li>
+<li><a href="#aim-of-this-guide-and-further-readings">Aim of this guide and further readings</a></li>
 <li><a href="#basic-steps-in-weighting-a-survey">Basic steps in weighting a survey</a></li>
 </ul></li>
 <li><a href="#read-data-and-data-management">Read data and data management</a><ul>
@@ -160,9 +160,10 @@ options(scipen = 9999)
 set.seed(456162)</code></pre>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
-<div id="note-and-bibliography" class="section level3">
-<h3>Note and bibliography</h3>
-<p>This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that there are many different ways of weighting a survey. This guide intends to be a practical document and intentionally avoids explaining complex or advanced methods. Instead, It aims at providing a standard way of weighting and a limited number of variations.</p>
+<div id="aim-of-this-guide-and-further-readings" class="section level3">
+<h3>Aim of this guide and further readings</h3>
+<p>This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides [R code] (<a href="https://www.r-project.org/" class="uri">https://www.r-project.org/</a>) for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an ‘R notebook’ format can be found and publicly accessed from the <a href="https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd">author’s github page</a>. For questions, clarifications or suggestions feel free to contact him at <a href="mailto:_jespasareig@gmail.com_">_jespasareig@gmail.com_</a>. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.</p>
+<p>Next sections will first give a very broad glimpse at all <a href="#basic%20steps%20in%20weighting%20a%20survey">main survey weighting steps</a>.The second section deals with importing data into R and presenting the dataset to readers. take a look at the dataset we will use for this guide.</p>
 <p>For more information you can check the following introductory texts:</p>
 <ul>
 <li>Valliant et al (2013) <em>Practical Tools for Designing and Weighting Survey Samples</em>. New York: Springer Science+Business Media.</li>
@@ -172,11 +173,11 @@ set.seed(456162)</code></pre>
 <ul>
 <li>Lumley (2010) <em>Complex Surveys: A Guide to Analysis Using R</em>. New Jersey: John Wiley &amp; Sons Inc.</li>
 </ul>
-<p>It is important to note that this guide focuses on surveys based on ‘probability sample’. These are surveys where all units in our statistical population have a chance of being selected and the probability of selection is known to the researcher. A brief note on how to weight non-probability samples is included at the end of the guide.</p>
+<p>Note that this guide focuses on surveys based on ‘probability sample’. These are surveys where all units in our statistical population have a chance of being selected and the probability of selection is known to the researcher. A brief note on how to weight non-probability samples is included at the end of the guide.</p>
 </div>
 <div id="basic-steps-in-weighting-a-survey" class="section level3">
 <h3>Basic steps in weighting a survey</h3>
-<p>Weighting is done to reduce survey bias. Informally explained, weighting consists on making our sample of survey respondents (more) representative of our statistical population. By statistical population I mean all those units for which we want to compute estimates.</p>
+<p>Weights are applied to reduce survey bias. In plain words, weighting consists on making our sample of survey respondents (more) representative of our statistical population. By statistical population we mean all those units for which we want to compute estimates.</p>
 <p>There are four basic steps in weighting. These are:</p>
 <ol style="list-style-type: decimal">
 <li><strong>Base/design weights</strong></li>
@@ -184,7 +185,7 @@ set.seed(456162)</code></pre>
 <li><strong>Use of auxiliary data/calibration</strong></li>
 <li><strong>Analysis of weight variability/trimming</strong></li>
 </ol>
-<p>The first step consists on computing weights to take into account the differences of units in the probability of being sampled. ‘Being sampled’ means being selected from the survey frame (i.e. the list of all units) to be approached for a survey response. This step can be skipped if all units in the survey frame have the same probability of being sampled. This happens, for example 1) when all units in the survey frame are approached for the sample or; 2) when the sampling design corresponds to either ‘simple random sampling without replacement’ or ‘stratified random sampling without replacement’ and the distribution of sampled units across stratums is proportional to the number of units in each stratum. These are called ‘self-weighted’ surveys.</p>
+<p>The first step consists on computing weights to take into account the differences of units in the probability of being sampled. ‘Being sampled’ means being selected from the survey frame (i.e. the list of all units) to be approached for a survey response. This step can be skipped if all units in the survey frame have the same probability of being sampled. This happens, for example 1) when all units in the survey frame are approached for the sample or; 2) with certain sampling designs such as ‘simple random sampling without replacement’ or ‘stratified random sampling without replacement’ with distribution of sampled units across stratums proportional to the number of units in each stratum. These are usually called ‘self-weighted’ surveys.</p>
 <p>In the second step we need to adjust our responses by the differences in probabilities of sampled units to reply to our survey. Our estimates would be biased if some profile of sampled units had higher propensity to reply than another and these profiles had differences in the dependent variables (i.e. our variables of interest). In this step, we need to estimate the probability of response using information available for both respondents and non-respondents. Non-response adjustment is not needed if all sampled units responded to the survey.</p>
 <p>The third step consists on adjusting our weights using available information about total population estimates. Note that this requieres data that is different from that needed in non-response adjustment (second step). Here we need auxiliary data which tells us information (i.e. estimates such as proportions, means, sums, counts) about the statistical population. The same variables should be available from our respondents but here we don’t need information about non-respondents.</p>
 <p>The last step is to check the variablity in our computed weights. High variation in weights can lead to some observations having too much importance in our sample. Even if weights reduce bias, they might largely inflate variance of estimates. Therefore, some survey practitioners worry about dealing with highly unequal weights.</p>
@@ -298,18 +299,18 @@ resp.y &lt;- c(resp.y, &quot;alcohol_day&quot;)</code></pre>
 <pre class="r"><code>cbind(names(data),attributes(data)$variable.labels) %&gt;% 
   as_data_frame() %&gt;%
   print()</code></pre>
-<pre><code>## # A tibble: 39 × 2
+<pre><code>## # A tibble: 39 x 2
 ##          V1
 ##       &lt;chr&gt;
-## 1      idno
-## 2  typesamp
-## 3   interva
-## 4    telnum
-## 5    agea_1
-## 6  gendera1
-## 7      type
-## 8    access
-## 9     physa
+##  1     idno
+##  2 typesamp
+##  3  interva
+##  4   telnum
+##  5   agea_1
+##  6 gendera1
+##  7     type
+##  8   access
+##  9    physa
 ## 10  littera
 ## # ... with 29 more rows, and 1 more variables: V2 &lt;chr&gt;</code></pre>
 <p>Here I will try to give population estimates for cigarette and alcohol consumption in the UK. These will be our ‘y’ variables or variables of interest. The information for these variables was obtained from survey responses. The idea is to first give descriptives of the distribution of these two variables such as quantiles and mean. Then I will do a simple extrapolation and compute total cigarette and alcohol consumption for the whole UK.</p>
@@ -633,18 +634,18 @@ rm(probabilities)</code></pre>
   summarise(n = n(),
     mean.prob.percentage = mean(prob, na.rm = T)*100) %&gt;%
       arrange(desc(mean.prob.percentage))</code></pre>
-<pre><code>## # A tibble: 11 × 3
+<pre><code>## # A tibble: 11 x 3
 ##                                                type     n
 ##                                              &lt;fctr&gt; &lt;int&gt;
-## 1                                                NA   482
-## 2          Multi-unit: Sheltered/retirement housing    37
-## 3                            Multi-unit house, flat   927
-## 4                                             Other    45
-## 5                             House-trailer or boat     5
-## 6                       Single unit: Terraced house  1364
-## 7  Only housing unit in building with other purpose    23
-## 8                  Single unit: Semi-detached house  1465
-## 9                       Single unit: Detached house  1209
+##  1                                               NA   482
+##  2         Multi-unit: Sheltered/retirement housing    37
+##  3                           Multi-unit house, flat   927
+##  4                                            Other    45
+##  5                            House-trailer or boat     5
+##  6                      Single unit: Terraced house  1364
+##  7 Only housing unit in building with other purpose    23
+##  8                 Single unit: Semi-detached house  1465
+##  9                      Single unit: Detached house  1209
 ## 10                                             Farm    34
 ## 11            Multi-unit: Student apartments, rooms     9
 ## # ... with 1 more variables: mean.prob.percentage &lt;dbl&gt;</code></pre>
@@ -659,7 +660,7 @@ data %&gt;%
   summarise(n = n(),
     mean.prob.percentage = mean(prob, na.rm = T)*100) %&gt;%
       arrange(desc(mean.prob.percentage))</code></pre>
-<pre><code>## # A tibble: 6 × 3
+<pre><code>## # A tibble: 6 x 3
 ##   hhmmb.factor     n mean.prob.percentage
 ##         &lt;fctr&gt; &lt;int&gt;                &lt;dbl&gt;
 ## 1            1   745          0.019260215
@@ -837,7 +838,7 @@ data.nonresponse.model$predicted.class %&gt;% levels()</code></pre>
 <pre class="r"><code>data.nonresponse.model %&gt;%
   group_by(predicted.class) %&gt;%
   summarise(mean.prob = mean(predicted.log.tr) %&gt;% round(4))</code></pre>
-<pre><code>## # A tibble: 5 × 2
+<pre><code>## # A tibble: 5 x 2
 ##   predicted.class mean.prob
 ##            &lt;fctr&gt;     &lt;dbl&gt;
 ## 1       (0,0.389]    0.3283
@@ -1095,7 +1096,7 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 <pre class="r"><code>data %&gt;%
   group_by(gender_age_rec) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
-<pre><code>## # A tibble: 8 × 2
+<pre><code>## # A tibble: 8 x 2
 ##   gender_age_rec total_n_sample
 ##            &lt;chr&gt;          &lt;dbl&gt;
 ## 1 Female_(14,34]     278.314489
@@ -1109,18 +1110,18 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 <pre class="r"><code>data %&gt;%
   group_by(region) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
-<pre><code>## # A tibble: 13 × 2
+<pre><code>## # A tibble: 13 x 2
 ##                      region total_n_sample
 ##                      &lt;fctr&gt;          &lt;dbl&gt;
-## 1      North East (England)     109.772692
-## 2      North West (England)     255.854324
-## 3  Yorkshire and the Humber     166.220830
-## 4   East Midlands (England)     176.531407
-## 5   West Midlands (England)     179.577054
-## 6           East of England     183.722435
-## 7                    London     247.805999
-## 8      South East (England)     321.601954
-## 9      South West (England)     188.804075
+##  1     North East (England)     109.772692
+##  2     North West (England)     255.854324
+##  3 Yorkshire and the Humber     166.220830
+##  4  East Midlands (England)     176.531407
+##  5  West Midlands (England)     179.577054
+##  6          East of England     183.722435
+##  7                   London     247.805999
+##  8     South East (England)     321.601954
+##  9     South West (England)     188.804075
 ## 10                    Wales     127.885681
 ## 11                 Scotland     223.724930
 ## 12         Northern Ireland      63.236400
@@ -1225,7 +1226,7 @@ data.calibration %&gt;%
   group_by(gender_age_rec) %&gt;%
   summarise(calibrated.sample.pop = sum(raked.weight)),
 age.gender.eurostat)</code></pre>
-<pre><code>## # A tibble: 6 × 3
+<pre><code>## # A tibble: 6 x 3
 ##   gender_age_rec calibrated.sample.pop  Freq
 ##            &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt;
 ## 1 Female_(14,34]              351.6823   352
@@ -1239,18 +1240,18 @@ data.calibration %&gt;%
   group_by(region) %&gt;%
   summarise(calibrated.sample.pop = sum(raked.weight)),
 region.eurostat)</code></pre>
-<pre><code>## # A tibble: 12 × 3
+<pre><code>## # A tibble: 12 x 3
 ##                      region calibrated.sample.pop  Freq
 ##                       &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt;
-## 1      North East (England)                    85    85
-## 2      North West (England)                   235   235
-## 3  Yorkshire and the Humber                   189   189
-## 4   East Midlands (England)                   169   169
-## 5   West Midlands (England)                   194   194
-## 6           East of England                   220   220
-## 7                    London                   286   286
-## 8      South East (England)                   312   312
-## 9      South West (England)                   183   183
+##  1     North East (England)                    85    85
+##  2     North West (England)                   235   235
+##  3 Yorkshire and the Humber                   189   189
+##  4  East Midlands (England)                   169   169
+##  5  West Midlands (England)                   194   194
+##  6          East of England                   220   220
+##  7                   London                   286   286
+##  8     South East (England)                   312   312
+##  9     South West (England)                   183   183
 ## 10                    Wales                   114   114
 ## 11                 Scotland                   176   176
 ## 12         Northern Ireland                    62    62</code></pre>
