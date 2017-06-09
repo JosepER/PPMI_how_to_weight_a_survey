@@ -3,10 +3,10 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
-  html_document:
+  html_notebook:
     theme: united
     toc: yes
-  html_notebook:
+  html_document:
     theme: united
     toc: yes
 ---
@@ -32,12 +32,14 @@ set.seed(456162)
 
 ## Introduction
 
-### Note and bibliography 
+### Aim of this guide and further readings
 
 This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that
-there are many different ways of weighting a survey. This guide intends to be a practical document and
-intentionally avoids explaining complex or advanced methods. Instead, It aims at providing 
+there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides   ste and
+intentionally avoids explaining complex or advanced methods. Instead, It aims at providing users with
 a standard way of weighting and a limited number of variations.
+
+Next sections will provide a step-by-step 
 
 For more information you can check the following introductory texts:
 
@@ -54,7 +56,7 @@ and the probability of selection is known to the researcher. A brief note on how
 
 ### Basic steps in weighting a survey
 
-Weighting is done to reduce survey bias. Informally explained, weighting consists on making our sample of survey respondents (more) representative of our statistical population. By statistical population I mean all those units for which we want to compute estimates.
+Weights are applied to reduce survey bias. In plain words, weighting consists on making our sample of survey respondents (more) representative of our statistical population. By statistical population we mean all those units for which we want to compute estimates.
 
 There are four basic steps in weighting. These are:
 
@@ -66,7 +68,7 @@ There are four basic steps in weighting. These are:
 The first step consists on computing weights to take into account the differences of units in the probability of being sampled.
 'Being sampled' means being selected from the survey frame (i.e. the list of all units) to be approached for a survey response.
 This step can be skipped if all units in the survey frame have the same probability of being sampled. This happens, for example
-1) when all units in the survey frame are approached for the sample or; 2) when the sampling design corresponds to either 'simple random sampling without replacement' or 'stratified random sampling without replacement' and the distribution of sampled units across stratums is proportional to the number of units in each stratum. These are called 'self-weighted' surveys. 
+1) when all units in the survey frame are approached for the sample or; 2) with certain sampling designs such as 'simple random sampling without replacement' or 'stratified random sampling without replacement' with distribution of sampled units across stratums proportional to the number of units in each stratum. These are usually called 'self-weighted' surveys. 
 
 In the second step we need to adjust our responses by the differences in probabilities of sampled units to reply to our survey. Our estimates would be biased if some profile of sampled units had higher propensity to reply than another and these profiles had differences in the dependent variables (i.e. our variables of interest). In this step, we need to estimate the probability of response using information available for both respondents and non-respondents. Non-response adjustment is not needed if all sampled units responded to the survey.
 
