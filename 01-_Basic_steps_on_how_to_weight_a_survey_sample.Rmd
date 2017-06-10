@@ -95,7 +95,7 @@ For this guide we will use the following 7th ESS datafiles in SPSS ('.sav') form
 
 #### Import data
 
-The following chunk of code loads the data sets from a *data* folder in the working directory.
+The following chunk of code loads the data sets from a *data* folder in the working directory. The sample data file is stored into the *sample.data* 'data_frame' object. The contact forms information is stored into the *paradata* folder. Survey responses from the integrated interviewer file are saved in the *responses* object. We also store the weight variables included in the integrated interviewer file in the *original.weights* data_frame.
 
 ```{r echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -114,8 +114,7 @@ original.weights <- responses %>% select(idno ,dweight, pspwght, pweight)
 
 #### Select variables
 
-We select the variables we are going to use in our analysis. Here we just
-write the names of the variables we intend to use.
+Once the data has been read into R, we select the variables we are going to use in our analysis. Selecting variables is a good practice as the ESS files contain much more information that we need for this example. This will allow us to easily find and see the data that is important for us in this guide. Here we just write the names of the variables we intend to use and we will later explain the content of the variables in more substantial terms.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
