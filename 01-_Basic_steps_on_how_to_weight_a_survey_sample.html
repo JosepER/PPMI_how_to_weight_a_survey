@@ -141,7 +141,7 @@ $(document).ready(function () {
 </ul></li>
 <li><a href="#step-3-use-of-auxiliary-data-for-weight-calibration">Step 3: Use of auxiliary data for weight calibration</a></li>
 <li><a href="#step-4-analysis-of-weight-variability">Step 4: Analysis of weight variability</a></li>
-<li><a href="#computing-an-estimate">Computing an estimate</a></li>
+<li><a href="#computing-estimates">Computing estimates</a></li>
 </ul>
 </div>
 
@@ -162,8 +162,8 @@ set.seed(456162)</code></pre>
 <h2>Introduction</h2>
 <div id="aim-of-this-guide-and-further-readings" class="section level3">
 <h3>Aim of this guide and further readings</h3>
-<p>This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides [R code] (<a href="https://www.r-project.org/" class="uri">https://www.r-project.org/</a>) for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an ‘R notebook’ format can be found and publicly accessed from the <a href="https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd">author’s github page</a>. For questions, clarifications or suggestions feel free to contact him at <a href="mailto:_jespasareig@gmail.com_">_jespasareig@gmail.com_</a>. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.</p>
-<p>Next sections will first give a very broad glimpse at all <a href="#basic%20steps%20in%20weighting%20a%20survey">main survey weighting steps</a>.The second section deals with importing data into R and presenting the dataset to readers. take a look at the dataset we will use for this guide.</p>
+<p>This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides [R code] (<a href="https://www.r-project.org/" class="uri">https://www.r-project.org/</a>) for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an ‘R notebook’ format can be found and publicly accessed from the <a href="https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd">author’s github page</a>. For questions, clarifications or suggestions feel free to contact him at <em>jespasareig at gmail.com</em>. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.</p>
+<p>Next sections will first give a very broad glimpse at all <a href="#basic%20steps%20in%20weighting%20a%20survey">main survey weighting steps</a>.The second section deals with importing data into R, data manipulation and briefly <a href="#exploring%20and%20presenting%20the%20dataset">presenting the dataset used for this guide</a>. Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute <a href="#step%201:%20Design%20weights">design weights</a>, <a href="#step%202:%20Non-response%20weights">non-response weights</a> and <a href="#step%203:%20Use%20of%20auxiliary%20data%20for%20weight%20calibration">calibration weights</a>. Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.</p>
 <p>For more information you can check the following introductory texts:</p>
 <ul>
 <li>Valliant et al (2013) <em>Practical Tools for Designing and Weighting Survey Samples</em>. New York: Springer Science+Business Media.</li>
@@ -173,7 +173,8 @@ set.seed(456162)</code></pre>
 <ul>
 <li>Lumley (2010) <em>Complex Surveys: A Guide to Analysis Using R</em>. New Jersey: John Wiley &amp; Sons Inc.</li>
 </ul>
-<p>Note that this guide focuses on surveys based on ‘probability sample’. These are surveys where all units in our statistical population have a chance of being selected and the probability of selection is known to the researcher. A brief note on how to weight non-probability samples is included at the end of the guide.</p>
+<p>It might be also worth keeping an eye on the (still incipient) R package <a href="https://cran.r-project.org/web/packages/srvyr/index.html"><em>srvyr</em></a>, developed and mantained by Greg Freedman Ellis.</p>
+<p>Note: This guide focuses on surveys based on ‘probability sample’. These are surveys where all units in our statistical population have a chance of being selected and the probability of selection is known to the researcher. A brief note on how to weight non-probability samples is included at the end of the guide.</p>
 </div>
 <div id="basic-steps-in-weighting-a-survey" class="section level3">
 <h3>Basic steps in weighting a survey</h3>
@@ -1300,9 +1301,11 @@ original.weights %&gt;% select(idno, pspwght)
 </div>
 <div id="step-4-analysis-of-weight-variability" class="section level2">
 <h2>Step 4: Analysis of weight variability</h2>
+<p>In progress!</p>
 </div>
-<div id="computing-an-estimate" class="section level2">
-<h2>Computing an estimate</h2>
+<div id="computing-estimates" class="section level2">
+<h2>Computing estimates</h2>
+<p>In progress!</p>
 </div>
 
 
