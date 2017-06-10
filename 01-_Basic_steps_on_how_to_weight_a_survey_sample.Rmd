@@ -3,14 +3,14 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
   html_notebook:
     theme: united
     toc: yes
   html_document:
     theme: united
-    toc: yes
-  pdf_document:
-    latex_engine: xelatex
     toc: yes
 ---
 
@@ -405,7 +405,7 @@ data %>%
 
 ```
 
-The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d_{0}*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
+The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d_0*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
 
 
 Here we compute the base weight from the probability given in the ESS database.   
