@@ -85,7 +85,10 @@ The last step is to check the variablity in our computed weights. High variation
 
 We first need to import data into R. In this guide we will use data from the 7th round of the [European Social Survey](http://www.europeansocialsurvey.org/). The advantage of this data is that the European Social Survey (ESS) is a well documented and high quality probability survey. It allows us to understand how responses were collected and provides some useful information about non-respondents. At the same time, the 7th ESS was weighted by expert statisticians. The process of the two phases of weighting they applied is explained in their [website](http://www.europeansocialsurvey.org/methodology/ess_methodology/data_processing_archiving/weighting.html). This will allow us to compare our own weights and results with those already computed by their team of experts.
 
+For this guide we will use the following 7th ESS datafiles in SPSS ('.sav') format: 
 
+* [sample data (SDDF), edition 1.1](http://www.europeansocialsurvey.org/download.html?file=ESS7SDDFe01_1&y=2014), which contains the  probability of being sampled for all respondents and non-respondents invited to the survey;  
+* [the data from Contact forms, edition 2.1](http://www.europeansocialsurvey.org/download.html?file=ESS7CFe02_1&y=2014), which provides information about the process of data collection (e.g. number of times the person was approached for a response, ID of interviewer in each approach, conditions of the house/area where the potential respondent lived.). We will call this data the **'paradata'** of the survey.
 
 
 #### Import data
