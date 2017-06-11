@@ -3,14 +3,16 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
-  html_document:
-    theme: united
+  word_document:
     toc: yes
   html_notebook:
     theme: united
     toc: yes
   pdf_document:
     latex_engine: xelatex
+    toc: yes
+  html_document:
+    theme: united
     toc: yes
 ---
 
@@ -320,7 +322,6 @@ Apart from the variables of interest (cigarette and alcohol consumption) our dat
 * __wrkctra__: Employment contract unlimited or limited duration
 * __hinctnta__: Household's total net income, all sources
 
-
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 data[c(resp.id, resp.x)] %>%
   head(6)
@@ -329,13 +330,13 @@ data[c(resp.id, resp.x)] %>%
 
 ## Step 1: Design weights {#design weights}
 
-The first step in weighing is taking into account the differences in the probability of being selected for the sample. The European Social Survey (ESS) did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user
-postcode address file (PAF), merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf) ). 
+The first step in weighing is taking into account the different probabilities of being selected for the sample that respondents may have. The 7th ESS did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user postcode address file (PAF) merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf)). 
 
-This sampling design is most probably done because they had a list of addresses but not households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.
+This sampling design is typical of survey frames where there is an available/public list of addresses but not a list of households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.
 
-Fortunately for us, the probablity of each respondent of being sampled was included in the ESS dataset. In many projects, however, we will have to compute sampling probailities ourselves. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
+Fortunately for us, the probablity of each respondent of being sampled was included in the 7th ESS dataset. In many projects, however, we will have to compute sampling probailities ourselves. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
 
+We will perform this test in the next chunk of code, which should give us an error if any of the probabilities is not in the interval $[0,1]$.
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 probabilities <- data %>%
@@ -359,8 +360,7 @@ unique(sort(data$prob))
 
 ```
 
-The vast majority of respondents had probability of `r sort(table(data$prob), decreasing = T)[[1]]` or `r sort(table(data$prob), decreasing = T)[[2]]`. This would mean that the most frequent probabilites of inclusion were of `r 1/round(sort(table(data$prob), decreasing = T)[[1]],0)` and `r 1/round(sort(table(data$prob), decreasing = T)[[2]],0)` respectively.
-We see a minority of around 15% of observations with smaller probabilities. 
+The vast majority of respondents had probability of `r names(table(data$prob))[which.max(table(data$prob))]` or 0.00020306164012234. We see a minority of around 15% of observations with smaller probabilities. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 ggplot(data, aes(x = prob)) +
