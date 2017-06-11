@@ -44,7 +44,7 @@ there are many different ways of doing this. This guide intends to be a practica
 
 For questions, clarifications or suggestions feel free to contact him at *jespasareig at gmail.com*. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.
 
-Next sections will first give a very broad glimpse at all [main survey weighting steps](#basic steps in weighting a survey).The second section deals with importing data into R, data manipulation and briefly [presenting the dataset used for this guide](#exploring and presenting the dataset). Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute [design weights](#step 1: Design weights), [non-response weights](#step 2: Non-response weights) and [calibration weights](#step 3: Use of auxiliary data for weight calibration). Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.
+Next sections will first give a very broad glimpse at all [main survey weighting steps](#basic steps in weighting a survey).The second section deals with importing data into R, data manipulation and briefly [presenting the dataset used for this guide](#exploring and presenting the dataset). Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute [design weights](#design weights), [non-response weights](#nonresponse weights) and [calibration weights](#calibration). Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.
 
 For more information you can check the following introductory texts:
 
@@ -90,7 +90,7 @@ We first need to import data into R. In this guide we will use UK data from the 
 For this guide we will use the following 7th ESS datafiles in SPSS ('.sav') format: 
 
   * [sample data (SDDF), edition 1.1](http://www.europeansocialsurvey.org/download.html?file=ESS7SDDFe01_1&y=2014), which contains the  probability of being sampled for all respondents and non-respondents invited to the survey;  
-  * [the data from Contact forms, edition 2.1](http://www.europeansocialsurvey.org/download.html?file=ESS7CFe02_1&y=2014), which provides information about the process of data collection (e.g. number of times the person was approached for a response, ID of interviewer in each approach, conditions of the house/area where the potential respondent lived.). We will call this data the **'paradata'** of the survey;
+  * [the data from Contact forms, edition 2.1](http://www.europeansocialsurvey.org/download.html?file=ESS7CFe02_1&y=2014), which provides information about the process of data collection (e.g. number of times the person was approached for a response, ID of interviewer in each approach, conditions of the house/area where the potential respondent lived.). We will call this data the *'paradata'* of the survey;
   * [the integrated interviewer data file, edition2.1](http://www.europeansocialsurvey.org/download.html?file=ESS7INTe02_1&y=2014). These are the responses to the survey. 
 
 The following sections explain data import, selection, merging and recoding. Readers who are not interested in technical details about datasets can skip them and jump directly into [exploration and presention of the data](#exploring and presenting the dataset)
@@ -122,13 +122,9 @@ Once the data has been read into R, we select the variables we are going to use 
 
 vars.sample.data <- c("idno", "psu", "prob")
 
-# Note: In sample file, domain and stratify variables could be useful for other countries.
-
 vars.paradata <- c("idno", "typesamp", "interva", "telnum", 
                    "agea_1", "gendera1", "type", "access", 
                    "physa", "littera", "vandaa")
-
-# Note: In paradata file, age of sampled unit could be useful for other countries.    
 
 resp.id <- c("idno")
 
@@ -201,8 +197,6 @@ Here we add the variable labels to the datasets with we kept before.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
-# Note: There are other variables that could be selected from paradata (i.e. result of visits, refusals, etc.)
-
 attributes(data)$variable.labels <- c(selected.labels.paradata, selected.labels.sample.data[!names(selected.labels.sample.data) %in% "idno"],
                                       selected.labels.responses)
 ```
@@ -267,7 +261,7 @@ These are our *Y* variables:
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 data[resp.y] %>%
   as_data_frame() %>%
-  head(6)
+  print()
 ```
 
 
@@ -280,10 +274,11 @@ The 7th ESS survey contains variables which give information about the data coll
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 data[vars.sample.data] %>%
-  head(6)
+  as_data_frame() %>%
+  print()
 ```
 
-The 7th ESS also contains variables for all sampled units (i.e. respondents and non-respondents). These give information  about the events that occurred during the data collection process. We will use these variables as covariates during the computation of **Non-response weights** in [step two](#step 2: Non-response weights).  
+The 7th ESS also contains variables for all sampled units (i.e. respondents and non-respondents). These give information  about the events that occurred during the data collection process. We will use these variables as covariates during the computation of **Non-response weights** in [step two](#nonresponse weights).  
 
 * __typesamp__: Refers to the type of unit sampled. In the UK addresses were the final sampling units. In some other countries these were households and individual people.   
 * __interva__: Shows the final outcome of the contact. In the UK sample, only codes 'Complete ...' and 'No interview ...' were used for respondents and non-respondents respectively.
@@ -304,7 +299,7 @@ data[vars.paradata] %>%
 
 #### Survey responses
 
-Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. We will try to use some of these variables to calibrate the survey in [__Use of auxiliary data/calibration__ step](#step 3: Use of auxiliary data for weight calibration). Some of these variables are:
+Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. We will try to use some of these variables to calibrate the survey in [__Use of auxiliary data/calibration__ step](#calibration). Some of these variables are:
 
 * __vote__: Voted last national election (Yes/No)
 * __prtvtbgb__: Party voted for in last national election
@@ -328,21 +323,13 @@ Apart from the variables of interest (cigarette and alcohol consumption) our dat
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 data[c(resp.id, resp.x)] %>%
-  head(10)
+  head(6)
 ```
 
 
-This is how the whole dataset looks like:
+## Step 1: Design weights {#design weights}
 
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-head(data, 10)
-```
-
-
-## Step 1: Design weights
-
-The first step in weighing is to take into account the differences in the probability of being selected for the sample. The European Social Survey (ESS) did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user
+The first step in weighing is taking into account the differences in the probability of being selected for the sample. The European Social Survey (ESS) did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user
 postcode address file (PAF), merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf) ). 
 
 This sampling design is most probably done because they had a list of addresses but not households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.
@@ -455,7 +442,7 @@ data %<>%
 As I mentioned before, base weights should sum up to the entire population from which the sample is drawn or to the total number of respondents if scaled (as they did in the ESS).  
 
 
-## Step 2: Non-response weights
+## Step 2: Non-response weights {#nonresponse weights}
 
 ### What are of non-response weights?
 
@@ -860,7 +847,7 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 ```
 
 
-## Step 3: Use of auxiliary data for weight calibration 
+## Step 3: Use of auxiliary data for weight calibration {#calibration}
 
 In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to 'correct' our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input ('final') weights but reproduce the population information exactly. Valliant et al 2013 explain that using the previous 'final' weights as input for the calibration step allows us to 'borrow' good estiamtion properties from those. 
 
