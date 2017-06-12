@@ -131,15 +131,15 @@ $(document).ready(function () {
 <li><a href="#read-data-and-data-management">Read data and data management</a><ul>
 <li><a href="#exploring-and-presenting-the-dataset">Exploring and presenting the dataset</a></li>
 </ul></li>
-<li><a href="#step-1-design-weights">Step 1: Design weights</a></li>
-<li><a href="#step-2-non-response-weights-nonresponse-weights">Step 2: Non-response weights {#nonresponse weights}</a><ul>
+<li><a href="#design_weights">Step 1: Design weights</a></li>
+<li><a href="#nonresponse_weights">Step 2: Non-response weights</a><ul>
 <li><a href="#what-are-of-non-response-weights">What are of non-response weights?</a></li>
 <li><a href="#estimating-response-propensities-using-logistic-regression">Estimating response propensities using logistic regression</a></li>
 <li><a href="#creating-non-response-adjustment-classes">Creating non-response adjustment classes</a></li>
 <li><a href="#testing-non-response-adjustment-classes">Testing non-response adjustment classes</a></li>
 <li><a href="#propensity-adjustment-alternative-to-adjustment-classes">Propensity adjustment (alternative to adjustment classes)</a></li>
 </ul></li>
-<li><a href="#step-3-use-of-auxiliary-data-for-weight-calibration">Step 3: Use of auxiliary data for weight calibration</a></li>
+<li><a href="#calibration">Step 3: Use of auxiliary data for weight calibration</a></li>
 <li><a href="#step-4-analysis-of-weight-variability">Step 4: Analysis of weight variability</a></li>
 <li><a href="#computing-estimates">Computing estimates</a></li>
 <li><a href="#note-for-non-probability-samples">Note for non-probability samples</a></li>
@@ -167,7 +167,7 @@ set.seed(456162)</code></pre>
 <h3>Aim of this guide and further readings</h3>
 <p>This is a short introductory guide that shows the basic procedures to weight a survey. Please keep in mind that there are many different ways of doing this. This guide intends to be a practical document and a step-by-step walkthrough for weighting a survey. It provides <a href="https://www.r-project.org/">R code</a> for all actions: from reading, manipulating and presenting data to modelling and callibration. This should allow readers to reproduce procerudes and results as well as to inspect objects at any given part of this guide. The source code in an ‘R notebook’ format can be found and publicly accessed from the <a href="https://github.com/JosepER/PPMI_how_to_weight_a_survey/01-_Basic_steps_on_how_to_weight_a_survey_sample.Rmd">author’s github page</a>. It is important to note that this is not an ‘R tutorial’. Thus, the guide does not provide a detailed comment on general functions used in this walk-through. Some intermediate ‘R’ skills might be requiered to follow all steps of the procedure. Readers with basic or no knowledge of ‘R’ can still benefit from this note as it explains the steps and principles behind weighting.</p>
 <p>For questions, clarifications or suggestions feel free to contact him at <em>jespasareig at gmail.com</em>. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.</p>
-<p>Next sections will first give a very broad glimpse at all <a href="#basic%20steps%20in%20weighting%20a%20survey">main survey weighting steps</a>.The second section deals with importing data into R, data manipulation and briefly <a href="#exploring%20and%20presenting%20the%20dataset">presenting the dataset used for this guide</a>. Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute <a href="#step%201:%20Design%20weights">design weights</a>, <a href="#nonresponse%20weights">non-response weights</a> and <a href="#step%203:%20Use%20of%20auxiliary%20data%20for%20weight%20calibration">calibration weights</a>. Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.</p>
+<p>Next sections will first give a very broad glimpse at all <a href="#basic%20steps%20in%20weighting%20a%20survey">main survey weighting steps</a>.The second section deals with importing data into R, data manipulation and briefly <a href="#exploring%20and%20presenting%20the%20dataset">presenting the dataset used for this guide</a>. Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute <a href="#design_weights">design weights</a>, <a href="#nonresponse_weights">non-response weights</a> and <a href="#calibration">calibration weights</a>. Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.</p>
 <p>For more information you can check the following introductory texts:</p>
 <ul>
 <li>Valliant et al (2013) <em>Practical Tools for Designing and Weighting Survey Samples</em>. New York: Springer Science+Business Media.</li>
@@ -312,48 +312,89 @@ data.variables$V2 &lt;- format(data.variables$V2 , justify = &quot;left&quot;)
 
 data.variables %&gt;%
   print(n = 40)</code></pre>
-<pre><code>## # A tibble: 39 x 2
-##             V1                                                                              V2
-##          &lt;chr&gt;                                                                           &lt;chr&gt;
-##  1        idno Respondent's identification number                                             
-##  2    typesamp Type of the sample                                                             
-##  3     interva Interview information for the sample unit                                      
-##  4      telnum Telephone number                                                               
-##  5      agea_1 Estimation of age of respondent or household member who refuses, by interviewer
-##  6    gendera1 Gender of respondent or household member who refuses, recorded by interviewer  
-##  7        type Type of house respondent lives in                                              
-##  8      access Entry phone or locked gate/door before reaching respondent's individual door   
-##  9       physa Assessment overall physical condition building/house                           
-## 10     littera Amount of litter and rubbish in the immediate vicinity                         
-## 11      vandaa Amount of vandalism and graffiti in the immediate vicinity                     
-## 12         psu PSU                                                                            
-## 13        prob PROB                                                                           
-## 14        vote Voted last national election                                                   
-## 15    prtvtbgb Party voted for in last national election, United Kingdom                      
-## 16    prtclbgb Which party feel closer to, United Kingdom                                     
-## 17     prtdgcl How close to party                                                             
-## 18     ctzcntr Citizen of country                                                             
-## 19    ctzshipc Citizenship                                                                    
-## 20     brncntr Born in country                                                                
-## 21    cntbrthc Country of birth                                                               
-## 22     cgtsmke Cigarettes smoking behaviour                                                   
-## 23     cgtsday How many cigarettes smoke on typical day                                       
-## 24     alcfreq How often drink alcohol                                                        
-## 25     alcwkdy Grams alcohol, last time drinking on a weekday, Monday to Thursday             
-## 26     alcwknd Grams alcohol, last time drinking on a weekend day, Friday to Sunday           
-## 27       hhmmb Number of people living regularly as member of household                       
-## 28        gndr Gender                                                                         
-## 29        agea Age of respondent, calculated                                                  
-## 30      eisced Highest level of education, ES - ISCED                                         
-## 31       pdwrk Doing last 7 days: paid work                                                   
-## 32       edctn Doing last 7 days: education                                                   
-## 33      uempla Doing last 7 days: unemployed, actively looking for job                        
-## 34      uempli Doing last 7 days: unemployed, not actively looking for job                    
-## 35        rtrd Doing last 7 days: retired                                                     
-## 36     wrkctra Employment contract unlimited or limited duration                              
-## 37    hinctnta Household's total net income, all sources                                      
-## 38      region Region                                                                         
-## 39 alcohol_day Respondent's identification number</code></pre>
+<pre><code>## # A tibble: 39 × 2
+##             V1
+##          &lt;chr&gt;
+## 1         idno
+## 2     typesamp
+## 3      interva
+## 4       telnum
+## 5       agea_1
+## 6     gendera1
+## 7         type
+## 8       access
+## 9        physa
+## 10     littera
+## 11      vandaa
+## 12         psu
+## 13        prob
+## 14        vote
+## 15    prtvtbgb
+## 16    prtclbgb
+## 17     prtdgcl
+## 18     ctzcntr
+## 19    ctzshipc
+## 20     brncntr
+## 21    cntbrthc
+## 22     cgtsmke
+## 23     cgtsday
+## 24     alcfreq
+## 25     alcwkdy
+## 26     alcwknd
+## 27       hhmmb
+## 28        gndr
+## 29        agea
+## 30      eisced
+## 31       pdwrk
+## 32       edctn
+## 33      uempla
+## 34      uempli
+## 35        rtrd
+## 36     wrkctra
+## 37    hinctnta
+## 38      region
+## 39 alcohol_day
+##                                                                                 V2
+##                                                                              &lt;chr&gt;
+## 1  Respondent's identification number                                             
+## 2  Type of the sample                                                             
+## 3  Interview information for the sample unit                                      
+## 4  Telephone number                                                               
+## 5  Estimation of age of respondent or household member who refuses, by interviewer
+## 6  Gender of respondent or household member who refuses, recorded by interviewer  
+## 7  Type of house respondent lives in                                              
+## 8  Entry phone or locked gate/door before reaching respondent's individual door   
+## 9  Assessment overall physical condition building/house                           
+## 10 Amount of litter and rubbish in the immediate vicinity                         
+## 11 Amount of vandalism and graffiti in the immediate vicinity                     
+## 12 PSU                                                                            
+## 13 PROB                                                                           
+## 14 Voted last national election                                                   
+## 15 Party voted for in last national election, United Kingdom                      
+## 16 Which party feel closer to, United Kingdom                                     
+## 17 How close to party                                                             
+## 18 Citizen of country                                                             
+## 19 Citizenship                                                                    
+## 20 Born in country                                                                
+## 21 Country of birth                                                               
+## 22 Cigarettes smoking behaviour                                                   
+## 23 How many cigarettes smoke on typical day                                       
+## 24 How often drink alcohol                                                        
+## 25 Grams alcohol, last time drinking on a weekday, Monday to Thursday             
+## 26 Grams alcohol, last time drinking on a weekend day, Friday to Sunday           
+## 27 Number of people living regularly as member of household                       
+## 28 Gender                                                                         
+## 29 Age of respondent, calculated                                                  
+## 30 Highest level of education, ES - ISCED                                         
+## 31 Doing last 7 days: paid work                                                   
+## 32 Doing last 7 days: education                                                   
+## 33 Doing last 7 days: unemployed, actively looking for job                        
+## 34 Doing last 7 days: unemployed, not actively looking for job                    
+## 35 Doing last 7 days: retired                                                     
+## 36 Employment contract unlimited or limited duration                              
+## 37 Household's total net income, all sources                                      
+## 38 Region                                                                         
+## 39 Respondent's identification number</code></pre>
 <pre class="r"><code>rm(data.variables)</code></pre>
 <p>The goal of this guide will be to to give UK population estimates for cigarette and alcohol consumption based on ESS respondents. These will be our <em>Y</em> variables or variables of interest. The idea is to give descriptives of the distribution of these two variables (such as quantiles and mean) and then a simple extrapolation and compute total cigarette and alcohol consumption for the whole UK.</p>
 <p>These are our <em>Y</em> variables:</p>
@@ -364,19 +405,31 @@ data.variables %&gt;%
 <pre class="r"><code>data[resp.y] %&gt;%
   as_data_frame() %&gt;%
   print()</code></pre>
-<pre><code>## # A tibble: 5,600 x 6
-##                            cgtsmke cgtsday              alcfreq alcwkdy alcwknd alcohol_day
-##  *                          &lt;fctr&gt;   &lt;dbl&gt;               &lt;fctr&gt;   &lt;dbl&gt;   &lt;dbl&gt;       &lt;dbl&gt;
-##  1             I have never smoked       0          Once a week       0       8  0.32653061
-##  2                   I smoke daily      10          Once a week      48      96  8.81632653
-##  3             I have never smoked       0 Several times a week      42       0  0.91428571
-##  4             I have never smoked       0                Never      NA      NA  0.00000000
-##  5                   I smoke daily      20    2-3 times a month      55       0  0.03265306
-##  6 I don't smoke now but I used to       0 Several times a week      26      32 24.68571429
-##  7 I don't smoke now but I used to       0          Once a week      17       0  0.13061224
-##  8                   I smoke daily      15                Never      NA      NA  0.00000000
-##  9             I have never smoked       0                Never      NA      NA  0.00000000
-## 10                   I smoke daily      20 Several times a week      42     121 12.00000000
+<pre><code>## # A tibble: 5,600 × 6
+##                            cgtsmke cgtsday              alcfreq alcwkdy
+## *                           &lt;fctr&gt;   &lt;dbl&gt;               &lt;fctr&gt;   &lt;dbl&gt;
+## 1              I have never smoked       0          Once a week       0
+## 2                    I smoke daily      10          Once a week      48
+## 3              I have never smoked       0 Several times a week      42
+## 4              I have never smoked       0                Never      NA
+## 5                    I smoke daily      20    2-3 times a month      55
+## 6  I don't smoke now but I used to       0 Several times a week      26
+## 7  I don't smoke now but I used to       0          Once a week      17
+## 8                    I smoke daily      15                Never      NA
+## 9              I have never smoked       0                Never      NA
+## 10                   I smoke daily      20 Several times a week      42
+##    alcwknd alcohol_day
+## *    &lt;dbl&gt;       &lt;dbl&gt;
+## 1        8  0.32653061
+## 2       96  8.81632653
+## 3        0  0.91428571
+## 4       NA  0.00000000
+## 5        0  0.03265306
+## 6       32 24.68571429
+## 7        0  0.13061224
+## 8       NA  0.00000000
+## 9       NA  0.00000000
+## 10     121 12.00000000
 ## # ... with 5,590 more rows</code></pre>
 <div id="paradata-variables" class="section level4">
 <h4>Paradata variables</h4>
@@ -388,18 +441,18 @@ data.variables %&gt;%
 <pre class="r"><code>data[vars.sample.data] %&gt;%
   as_data_frame() %&gt;%
   print()</code></pre>
-<pre><code>## # A tibble: 5,600 x 3
+<pre><code>## # A tibble: 5,600 × 3
 ##         idno   psu          prob
-##  *     &lt;dbl&gt; &lt;dbl&gt;         &lt;dbl&gt;
-##  1 100000003  9388 0.00020306164
-##  2 100000005  9241 0.00020306164
-##  3 100000008  9472 0.00020306164
-##  4 100000009  9450 0.00005076541
-##  5 100000010  9479 0.00010153082
-##  6 100000012  9460 0.00010153082
-##  7 100000015  9440 0.00010153082
-##  8 100000016  9494 0.00020306164
-##  9 100000017  9376 0.00010153082
+## *      &lt;dbl&gt; &lt;dbl&gt;         &lt;dbl&gt;
+## 1  100000003  9388 0.00020306164
+## 2  100000005  9241 0.00020306164
+## 3  100000008  9472 0.00020306164
+## 4  100000009  9450 0.00005076541
+## 5  100000010  9479 0.00010153082
+## 6  100000012  9460 0.00010153082
+## 7  100000015  9440 0.00010153082
+## 8  100000016  9494 0.00020306164
+## 9  100000017  9376 0.00010153082
 ## 10 100000020  9273 0.00010153082
 ## # ... with 5,590 more rows</code></pre>
 <p>The 7th ESS also contains variables for all sampled units (i.e. respondents and non-respondents). These give information about the events that occurred during the data collection process. We will use these variables as covariates during the computation of <strong>Non-response weights</strong> in <a href="#nonresponse%20weights">step two</a>.</p>
@@ -417,44 +470,32 @@ data.variables %&gt;%
 <li><strong>vandaa</strong>: Interviewer assessment of amount of vandalism and graffiti in the immediate vicinity.</li>
 </ul>
 <pre class="r"><code>data[vars.paradata] %&gt;%
-  head(10)</code></pre>
-<pre><code>##         idno typesamp                                    interva  telnum
-## 1  100000003  Address Complete and valid interview related to CF Present
-## 2  100000005  Address Complete and valid interview related to CF Present
-## 3  100000008  Address Complete and valid interview related to CF Present
-## 4  100000009  Address Complete and valid interview related to CF Present
-## 5  100000010  Address Complete and valid interview related to CF Present
-## 6  100000012  Address Complete and valid interview related to CF Present
-## 7  100000015  Address Complete and valid interview related to CF Present
-## 8  100000016  Address Complete and valid interview related to CF Present
-## 9  100000017  Address Complete and valid interview related to CF Present
-## 10 100000020  Address Complete and valid interview related to CF Refused
-##    agea_1 gendera1                             type                access
-## 1    &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
-## 2    &lt;NA&gt;     &lt;NA&gt; Single unit: Semi-detached house  No, neither of these
-## 3    &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house Yes, locked gate/door
-## 4    &lt;NA&gt;     &lt;NA&gt; Single unit: Semi-detached house  No, neither of these
-## 5    &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
-## 6    &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
-## 7    &lt;NA&gt;     &lt;NA&gt;      Single unit: Detached house  No, neither of these
-## 8    &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
-## 9    &lt;NA&gt;     &lt;NA&gt; Single unit: Semi-detached house  No, neither of these
-## 10   &lt;NA&gt;     &lt;NA&gt; Single unit: Semi-detached house  No, neither of these
-##           physa             littera              vandaa
-## 1  Satisfactory        Small amount None or almost none
-## 2          Good None or almost none None or almost none
-## 3          Good None or almost none None or almost none
-## 4  Satisfactory        Large amount None or almost none
-## 5  Satisfactory None or almost none None or almost none
-## 6     Very good None or almost none None or almost none
-## 7  Satisfactory None or almost none None or almost none
-## 8          Good None or almost none None or almost none
-## 9           Bad None or almost none None or almost none
-## 10 Satisfactory None or almost none None or almost none</code></pre>
+  head(6)</code></pre>
+<pre><code>##        idno typesamp                                    interva  telnum
+## 1 100000003  Address Complete and valid interview related to CF Present
+## 2 100000005  Address Complete and valid interview related to CF Present
+## 3 100000008  Address Complete and valid interview related to CF Present
+## 4 100000009  Address Complete and valid interview related to CF Present
+## 5 100000010  Address Complete and valid interview related to CF Present
+## 6 100000012  Address Complete and valid interview related to CF Present
+##   agea_1 gendera1                             type                access
+## 1   &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
+## 2   &lt;NA&gt;     &lt;NA&gt; Single unit: Semi-detached house  No, neither of these
+## 3   &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house Yes, locked gate/door
+## 4   &lt;NA&gt;     &lt;NA&gt; Single unit: Semi-detached house  No, neither of these
+## 5   &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
+## 6   &lt;NA&gt;     &lt;NA&gt;      Single unit: Terraced house  No, neither of these
+##          physa             littera              vandaa
+## 1 Satisfactory        Small amount None or almost none
+## 2         Good None or almost none None or almost none
+## 3         Good None or almost none None or almost none
+## 4 Satisfactory        Large amount None or almost none
+## 5 Satisfactory None or almost none None or almost none
+## 6    Very good None or almost none None or almost none</code></pre>
 </div>
 <div id="survey-responses" class="section level4">
 <h4>Survey responses</h4>
-<p>Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. We will try to use some of these variables to calibrate the survey in <a href="#step%203:%20Use%20of%20auxiliary%20data%20for%20weight%20calibration"><strong>Use of auxiliary data/calibration</strong> step</a>. Some of these variables are:</p>
+<p>Apart from the variables of interest (cigarette and alcohol consumption) our dataset has other variables obtained from survey responses. Obviously, these are only available for respondents. We will try to use some of these variables to calibrate the survey in <a href="#calibration"><strong>Use of auxiliary data/calibration</strong> step</a>. Some of these variables are:</p>
 <ul>
 <li><strong>vote</strong>: Voted last national election (Yes/No)</li>
 <li><strong>prtvtbgb</strong>: Party voted for in last national election</li>
@@ -476,70 +517,51 @@ data.variables %&gt;%
 <li><strong>hinctnta</strong>: Household’s total net income, all sources</li>
 </ul>
 <pre class="r"><code>data[c(resp.id, resp.x)] %&gt;%
-  head(10)</code></pre>
-<pre><code>##         idno vote         prtvtbgb     prtclbgb     prtdgcl ctzcntr
-## 1  100000003  Yes Liberal Democrat         &lt;NA&gt;        &lt;NA&gt;     Yes
-## 2  100000005  Yes Liberal Democrat         &lt;NA&gt;        &lt;NA&gt;     Yes
-## 3  100000008  Yes           Labour       Labour   Not close     Yes
-## 4  100000009  Yes           Labour         &lt;NA&gt;        &lt;NA&gt;     Yes
-## 5  100000010   No             &lt;NA&gt;         &lt;NA&gt;        &lt;NA&gt;     Yes
-## 6  100000012   No             &lt;NA&gt;         &lt;NA&gt;        &lt;NA&gt;     Yes
-## 7  100000015  Yes     Conservative Conservative Quite close     Yes
-## 8  100000016   No             &lt;NA&gt;         &lt;NA&gt;        &lt;NA&gt;     Yes
-## 9  100000017   No             &lt;NA&gt;       Labour  Very close      No
-## 10 100000020   No             &lt;NA&gt;         &lt;NA&gt;        &lt;NA&gt;     Yes
-##    ctzshipc brncntr cntbrthc   gndr agea hhmmb
-## 1      &lt;NA&gt;     Yes     &lt;NA&gt; Female   49     1
-## 2      &lt;NA&gt;     Yes     &lt;NA&gt; Female   45     2
-## 3      &lt;NA&gt;     Yes     &lt;NA&gt;   Male   76     1
-## 4      &lt;NA&gt;      No     &lt;NA&gt;   Male   50     5
-## 5      &lt;NA&gt;     Yes     &lt;NA&gt;   Male   67     2
-## 6      &lt;NA&gt;     Yes     &lt;NA&gt; Female   31     2
-## 7      &lt;NA&gt;     Yes     &lt;NA&gt; Female   34     3
-## 8      &lt;NA&gt;     Yes     &lt;NA&gt; Female   44     1
-## 9    Poland      No   Poland   Male   32     3
-## 10     &lt;NA&gt;     Yes     &lt;NA&gt;   Male   58     2
-##                                                 eisced
-## 1  ES-ISCED V2, higher tertiary education, &gt;= MA level
-## 2      ES-ISCED V1, lower tertiary education, BA level
-## 3               ES-ISCED I , less than lower secondary
-## 4                         ES-ISCED II, lower secondary
-## 5               ES-ISCED I , less than lower secondary
-## 6            ES-ISCED IIIa, upper tier upper secondary
-## 7            ES-ISCED IIIa, upper tier upper secondary
-## 8                         ES-ISCED II, lower secondary
-## 9            ES-ISCED IIIa, upper tier upper secondary
-## 10           ES-ISCED IIIa, upper tier upper secondary
-##                      region      pdwrk      edctn     uempla     uempli
-## 1   West Midlands (England)     Marked Not marked Not marked Not marked
-## 2                  Scotland     Marked Not marked Not marked Not marked
-## 3   East Midlands (England) Not marked Not marked Not marked Not marked
-## 4      South East (England) Not marked Not marked Not marked Not marked
-## 5  Yorkshire and the Humber Not marked Not marked Not marked Not marked
-## 6      South West (England)     Marked Not marked Not marked Not marked
-## 7                    London     Marked Not marked Not marked Not marked
-## 8           East of England     Marked Not marked Not marked Not marked
-## 9   West Midlands (England)     Marked Not marked Not marked Not marked
-## 10     South West (England)     Marked Not marked Not marked Not marked
-##          rtrd     wrkctra        hinctnta
-## 1  Not marked   Unlimited  M - 4th decile
-## 2  Not marked No contract  R - 2nd decile
-## 3      Marked   Unlimited  R - 2nd decile
-## 4  Not marked   Unlimited  S - 6th decile
-## 5      Marked        &lt;NA&gt;  J - 1st decile
-## 6  Not marked   Unlimited  F - 5th decile
-## 7  Not marked   Unlimited H - 10th decile
-## 8  Not marked   Unlimited  R - 2nd decile
-## 9  Not marked   Unlimited  S - 6th decile
-## 10 Not marked   Unlimited  K - 7th decile</code></pre>
+  head(6)</code></pre>
+<pre><code>##        idno vote         prtvtbgb prtclbgb   prtdgcl ctzcntr ctzshipc
+## 1 100000003  Yes Liberal Democrat     &lt;NA&gt;      &lt;NA&gt;     Yes     &lt;NA&gt;
+## 2 100000005  Yes Liberal Democrat     &lt;NA&gt;      &lt;NA&gt;     Yes     &lt;NA&gt;
+## 3 100000008  Yes           Labour   Labour Not close     Yes     &lt;NA&gt;
+## 4 100000009  Yes           Labour     &lt;NA&gt;      &lt;NA&gt;     Yes     &lt;NA&gt;
+## 5 100000010   No             &lt;NA&gt;     &lt;NA&gt;      &lt;NA&gt;     Yes     &lt;NA&gt;
+## 6 100000012   No             &lt;NA&gt;     &lt;NA&gt;      &lt;NA&gt;     Yes     &lt;NA&gt;
+##   brncntr cntbrthc   gndr agea hhmmb
+## 1     Yes     &lt;NA&gt; Female   49     1
+## 2     Yes     &lt;NA&gt; Female   45     2
+## 3     Yes     &lt;NA&gt;   Male   76     1
+## 4      No     &lt;NA&gt;   Male   50     5
+## 5     Yes     &lt;NA&gt;   Male   67     2
+## 6     Yes     &lt;NA&gt; Female   31     2
+##                                                eisced
+## 1 ES-ISCED V2, higher tertiary education, &gt;= MA level
+## 2     ES-ISCED V1, lower tertiary education, BA level
+## 3              ES-ISCED I , less than lower secondary
+## 4                        ES-ISCED II, lower secondary
+## 5              ES-ISCED I , less than lower secondary
+## 6           ES-ISCED IIIa, upper tier upper secondary
+##                     region      pdwrk      edctn     uempla     uempli
+## 1  West Midlands (England)     Marked Not marked Not marked Not marked
+## 2                 Scotland     Marked Not marked Not marked Not marked
+## 3  East Midlands (England) Not marked Not marked Not marked Not marked
+## 4     South East (England) Not marked Not marked Not marked Not marked
+## 5 Yorkshire and the Humber Not marked Not marked Not marked Not marked
+## 6     South West (England)     Marked Not marked Not marked Not marked
+##         rtrd     wrkctra       hinctnta
+## 1 Not marked   Unlimited M - 4th decile
+## 2 Not marked No contract R - 2nd decile
+## 3     Marked   Unlimited R - 2nd decile
+## 4 Not marked   Unlimited S - 6th decile
+## 5     Marked        &lt;NA&gt; J - 1st decile
+## 6 Not marked   Unlimited F - 5th decile</code></pre>
 </div>
 </div>
 </div>
-<div id="step-1-design-weights" class="section level2">
+<div id="design_weights" class="section level2">
 <h2>Step 1: Design weights</h2>
-<p>The first step in weighing is to take into account the differences in the probability of being selected for the sample. The European Social Survey (ESS) did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user postcode address file (PAF), merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report (<a href="http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf">Edition 3.1</a> ).</p>
-<p>This sampling design is most probably done because they had a list of addresses but not households or individuals. If we don’t weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.</p>
-<p>Fortunately for us, the probablity of each respondent of being sampled was included in the ESS dataset. In many projects, however, we will have to compute sampling probailities ourselves. A basic but <strong>important test</strong> that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.</p>
+<p>The first step in weighing is taking into account the different probabilities of being sampled that respondents may have. The 7th ESS did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user postcode address file (PAF) merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report (<a href="http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf">Edition 3.1</a>).</p>
+<p>This sampling design is typical of survey frames where there is an available/public list of addresses but not a list of households or individuals. If we don’t weight this survey, we would probably over-represent people in addresses that have smaller number of dwellings, dwellings that include smaller number of households and households that comprise smaller number of people.</p>
+<p>Fortunately for us, the probablity of each respondent of being sampled was computed by national experts and included in the 7th ESS dataset. In many projects, however, we would have to compute sampling probailities ourselves. A basic but <strong>important test</strong> that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.</p>
+<p>We will perform this test in the next chunk of code, which should give us an error if any of the probabilities is not in the interval <span class="math inline">\([0,1]\)</span>.</p>
 <pre class="r"><code>probabilities &lt;- data %&gt;%
   summarise(min.probability = min(prob, na.rm = T),
             max.probability = max(prob, na.rm = T)) %&gt;%
@@ -556,36 +578,49 @@ rm(probabilities)</code></pre>
 <pre><code>##  [1] 0.00001269135 0.00001682761 0.00001692180 0.00001846015 0.00002030616
 ##  [6] 0.00002256240 0.00002538271 0.00002900881 0.00003384361 0.00004061233
 ## [11] 0.00005076541 0.00006768721 0.00010153082 0.00013681033 0.00020306164</code></pre>
-<p>The vast majority of respondents had probability of 1144 or 787. This would mean that the most frequent probabilites of inclusion were of 0.0008741 and 0.0012706 respectively. We see a minority of around 15% of observations with smaller probabilities.</p>
-<pre class="r"><code>ggplot(data, aes(x = prob)) +
-  geom_histogram()</code></pre>
-<p><img src="data:image/png;base64,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" width="672" /></p>
+<p>The vast majority of respondents had probability of 0.00010153082006117 or 0.00020306164012234 (i.e. one in 9849.2260714 and one in 4924.6130357). We see a minority of around 15% of observations with smaller probabilities.</p>
 <pre class="r"><code>table(round(data$prob*100,6))</code></pre>
 <pre><code>## 
 ## 0.001269 0.001683 0.001692 0.001846 0.002031 0.002256 0.002538 0.002901 
 ##        1        1        1        2        1        6        1        1 
 ## 0.003384 0.004061 0.005077 0.006769 0.010153 0.013681 0.020306 
 ##        6       22      101      188     1144        2      787</code></pre>
+<pre class="r"><code>ggplot(data, aes(x = prob)) +
+  geom_histogram()</code></pre>
+<p><img src="data:image/png;base64,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" width="672" /></p>
 <p>We see that</p>
 <pre class="r"><code>data %&gt;%
   group_by(type) %&gt;%
   summarise(n = n(),
     mean.prob.percentage = mean(prob, na.rm = T)*100) %&gt;%
       arrange(desc(mean.prob.percentage))</code></pre>
-<pre><code>## # A tibble: 11 x 3
-##                                                type     n mean.prob.percentage
-##                                              &lt;fctr&gt; &lt;int&gt;                &lt;dbl&gt;
-##  1                                               NA   482           0.02030616
-##  2         Multi-unit: Sheltered/retirement housing    37           0.01869456
-##  3                           Multi-unit house, flat   927           0.01617988
-##  4                                            Other    45           0.01601931
-##  5                            House-trailer or boat     5           0.01353744
-##  6                      Single unit: Terraced house  1364           0.01338198
-##  7 Only housing unit in building with other purpose    23           0.01305396
-##  8                 Single unit: Semi-detached house  1465           0.01213712
-##  9                      Single unit: Detached house  1209           0.01173768
-## 10                                             Farm    34           0.01149272
-## 11            Multi-unit: Student apartments, rooms     9           0.00412469</code></pre>
+<pre><code>## # A tibble: 11 × 3
+##                                                type     n
+##                                              &lt;fctr&gt; &lt;int&gt;
+## 1                                                NA   482
+## 2          Multi-unit: Sheltered/retirement housing    37
+## 3                            Multi-unit house, flat   927
+## 4                                             Other    45
+## 5                             House-trailer or boat     5
+## 6                       Single unit: Terraced house  1364
+## 7  Only housing unit in building with other purpose    23
+## 8                  Single unit: Semi-detached house  1465
+## 9                       Single unit: Detached house  1209
+## 10                                             Farm    34
+## 11            Multi-unit: Student apartments, rooms     9
+##    mean.prob.percentage
+##                   &lt;dbl&gt;
+## 1            0.02030616
+## 2            0.01869456
+## 3            0.01617988
+## 4            0.01601931
+## 5            0.01353744
+## 6            0.01338198
+## 7            0.01305396
+## 8            0.01213712
+## 9            0.01173768
+## 10           0.01149272
+## 11           0.00412469</code></pre>
 <pre class="r"><code>data %&lt;&gt;%
   mutate(hhmmb.factor = as.factor(hhmmb) %&gt;% fct_recode(`+5` = &quot;6&quot;,
                                                         `+5` = &quot;7&quot;,
@@ -597,7 +632,7 @@ data %&gt;%
   summarise(n = n(),
     mean.prob.percentage = mean(prob, na.rm = T)*100) %&gt;%
       arrange(desc(mean.prob.percentage))</code></pre>
-<pre><code>## # A tibble: 6 x 3
+<pre><code>## # A tibble: 6 × 3
 ##   hhmmb.factor     n mean.prob.percentage
 ##         &lt;fctr&gt; &lt;int&gt;                &lt;dbl&gt;
 ## 1            1   745          0.019260215
@@ -606,7 +641,7 @@ data %&gt;%
 ## 4            4   303          0.009026823
 ## 5            5   118          0.008328013
 ## 6           +5    33          0.007486616</code></pre>
-<p>The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (<em>d_0</em>) of a respondent (<em>i</em>) will be equal to: <span class="math inline">\(d_{0i} = 1/\pi_{i}\)</span>.</p>
+<p>The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (<em>d<sub>0</sub></em>) of a respondent (<em>i</em>) will be equal to: <span class="math inline">\(d_{0i} = 1/\pi_{i}\)</span>.</p>
 <p>Here we compute the base weight from the probability given in the ESS database.</p>
 <pre class="r"><code>data %&lt;&gt;%
   mutate(base.weight = 1/prob)
@@ -649,8 +684,8 @@ data %&gt;%
   mutate(base.weight.scaled = base.weight/sum(base.weight, na.rm = T)*nrow(data[!is.na(data$prob),]))</code></pre>
 <p>As I mentioned before, base weights should sum up to the entire population from which the sample is drawn or to the total number of respondents if scaled (as they did in the ESS).</p>
 </div>
-<div id="step-2-non-response-weights-nonresponse-weights" class="section level2">
-<h2>Step 2: Non-response weights {#nonresponse weights}</h2>
+<div id="nonresponse_weights" class="section level2">
+<h2>Step 2: Non-response weights</h2>
 <div id="what-are-of-non-response-weights" class="section level3">
 <h3>What are of non-response weights?</h3>
 <p>The second basic step in weighting a survey is accounting for differences in the propensity to respond. Imagine a situation in which a profile of sampled units had higher propensity to respond than another profile. Imagine as well that the characteristics of both profiles were associated to our y variables (here alcohol and cigarretes consumption). This would create a bias in our analyses.</p>
@@ -775,7 +810,7 @@ data.nonresponse.model$predicted.class %&gt;% levels()</code></pre>
 <pre class="r"><code>data.nonresponse.model %&gt;%
   group_by(predicted.class) %&gt;%
   summarise(mean.prob = mean(predicted.log.tr) %&gt;% round(4))</code></pre>
-<pre><code>## # A tibble: 5 x 2
+<pre><code>## # A tibble: 5 × 2
 ##   predicted.class mean.prob
 ##            &lt;fctr&gt;     &lt;dbl&gt;
 ## 1       (0,0.389]    0.3283
@@ -1017,7 +1052,7 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 </div>
 </div>
 </div>
-<div id="step-3-use-of-auxiliary-data-for-weight-calibration" class="section level2">
+<div id="calibration" class="section level2">
 <h2>Step 3: Use of auxiliary data for weight calibration</h2>
 <p>In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to ‘correct’ our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input (‘final’) weights but reproduce the population information exactly. Valliant et al 2013 explain that using the previous ‘final’ weights as input for the calibration step allows us to ‘borrow’ good estiamtion properties from those.</p>
 <p>An important difference between this step of using auxiliary data for calibration and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general.</p>
@@ -1033,7 +1068,7 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 <pre class="r"><code>data %&gt;%
   group_by(gender_age_rec) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
-<pre><code>## # A tibble: 8 x 2
+<pre><code>## # A tibble: 8 × 2
 ##   gender_age_rec total_n_sample
 ##            &lt;chr&gt;          &lt;dbl&gt;
 ## 1 Female_(14,34]     278.314489
@@ -1047,18 +1082,18 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 <pre class="r"><code>data %&gt;%
   group_by(region) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
-<pre><code>## # A tibble: 13 x 2
+<pre><code>## # A tibble: 13 × 2
 ##                      region total_n_sample
 ##                      &lt;fctr&gt;          &lt;dbl&gt;
-##  1     North East (England)     109.772692
-##  2     North West (England)     255.854324
-##  3 Yorkshire and the Humber     166.220830
-##  4  East Midlands (England)     176.531407
-##  5  West Midlands (England)     179.577054
-##  6          East of England     183.722435
-##  7                   London     247.805999
-##  8     South East (England)     321.601954
-##  9     South West (England)     188.804075
+## 1      North East (England)     109.772692
+## 2      North West (England)     255.854324
+## 3  Yorkshire and the Humber     166.220830
+## 4   East Midlands (England)     176.531407
+## 5   West Midlands (England)     179.577054
+## 6           East of England     183.722435
+## 7                    London     247.805999
+## 8      South East (England)     321.601954
+## 9      South West (England)     188.804075
 ## 10                    Wales     127.885681
 ## 11                 Scotland     223.724930
 ## 12         Northern Ireland      63.236400
@@ -1163,7 +1198,7 @@ data.calibration %&gt;%
   group_by(gender_age_rec) %&gt;%
   summarise(calibrated.sample.pop = sum(raked.weight)),
 age.gender.eurostat)</code></pre>
-<pre><code>## # A tibble: 6 x 3
+<pre><code>## # A tibble: 6 × 3
 ##   gender_age_rec calibrated.sample.pop  Freq
 ##            &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt;
 ## 1 Female_(14,34]              351.6823   352
@@ -1177,18 +1212,18 @@ data.calibration %&gt;%
   group_by(region) %&gt;%
   summarise(calibrated.sample.pop = sum(raked.weight)),
 region.eurostat)</code></pre>
-<pre><code>## # A tibble: 12 x 3
+<pre><code>## # A tibble: 12 × 3
 ##                      region calibrated.sample.pop  Freq
 ##                       &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt;
-##  1     North East (England)                    85    85
-##  2     North West (England)                   235   235
-##  3 Yorkshire and the Humber                   189   189
-##  4  East Midlands (England)                   169   169
-##  5  West Midlands (England)                   194   194
-##  6          East of England                   220   220
-##  7                   London                   286   286
-##  8     South East (England)                   312   312
-##  9     South West (England)                   183   183
+## 1      North East (England)                    85    85
+## 2      North West (England)                   235   235
+## 3  Yorkshire and the Humber                   189   189
+## 4   East Midlands (England)                   169   169
+## 5   West Midlands (England)                   194   194
+## 6           East of England                   220   220
+## 7                    London                   286   286
+## 8      South East (England)                   312   312
+## 9      South West (England)                   183   183
 ## 10                    Wales                   114   114
 ## 11                 Scotland                   176   176
 ## 12         Northern Ireland                    62    62</code></pre>

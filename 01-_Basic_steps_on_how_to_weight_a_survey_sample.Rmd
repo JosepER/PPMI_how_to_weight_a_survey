@@ -3,7 +3,8 @@ title: "(Very) basic steps on how to weight a survey sample"
 author: "JosepER"
 subtitle: An explained example with R code
 output:
-  word_document:
+  html_document:
+    theme: united
     toc: yes
   html_notebook:
     theme: united
@@ -11,8 +12,7 @@ output:
   pdf_document:
     latex_engine: xelatex
     toc: yes
-  html_document:
-    theme: united
+  word_document:
     toc: yes
 ---
 
@@ -46,7 +46,7 @@ there are many different ways of doing this. This guide intends to be a practica
 
 For questions, clarifications or suggestions feel free to contact him at *jespasareig at gmail.com*. It is relevant to say that this text intentionally avoids explaining complex or advanced methods. Instead, it aims at providing users with a standard way of weighting and a limited number of variations.
 
-Next sections will first give a very broad glimpse at all [main survey weighting steps](#basic steps in weighting a survey).The second section deals with importing data into R, data manipulation and briefly [presenting the dataset used for this guide](#exploring and presenting the dataset). Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute [design weights](#design weights), [non-response weights](#nonresponse weights) and [calibration weights](#calibration). Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.
+Next sections will first give a very broad glimpse at all [main survey weighting steps](#basic steps in weighting a survey).The second section deals with importing data into R, data manipulation and briefly [presenting the dataset used for this guide](#exploring and presenting the dataset). Readers interested in a specific step, familiar with the 7th round of the European Social Survey or that want to jump directly into weighting procedures can skip this part of the guide. The three sections are the main components of this guide and show how to compute [design weights](#design_weights), [non-response weights](#nonresponse_weights) and [calibration weights](#calibration). Two more sections will be added to this survey in the future. These correspond to the analysis of weight variability and computing weighted estimates.
 
 For more information you can check the following introductory texts:
 
@@ -328,13 +328,13 @@ data[c(resp.id, resp.x)] %>%
 ```
 
 
-## Step 1: Design weights {#design weights}
+## Step 1: Design weights {#design_weights}
 
-The first step in weighing is taking into account the different probabilities of being selected for the sample that respondents may have. The 7th ESS did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user postcode address file (PAF) merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf)). 
+The first step in weighing is taking into account the different probabilities of being sampled that respondents may have. The 7th ESS did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user postcode address file (PAF) merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf)). 
 
-This sampling design is typical of survey frames where there is an available/public list of addresses but not a list of households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dewellings, dwellings that include smaller number of households and households that comprise smaller number of people.
+This sampling design is typical of survey frames where there is an available/public list of addresses but not a list of households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dwellings, dwellings that include smaller number of households and households that comprise smaller number of people.
 
-Fortunately for us, the probablity of each respondent of being sampled was included in the 7th ESS dataset. In many projects, however, we will have to compute sampling probailities ourselves. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
+Fortunately for us, the probablity of each respondent of being sampled was computed by national experts and included in the 7th ESS dataset. In many projects, however, we would have to compute sampling probailities ourselves. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
 
 We will perform this test in the next chunk of code, which should give us an error if any of the probabilities is not in the interval $[0,1]$.
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -360,7 +360,11 @@ unique(sort(data$prob))
 
 ```
 
-The vast majority of respondents had probability of `r names(table(data$prob))[which.max(table(data$prob))]` or 0.00020306164012234. We see a minority of around 15% of observations with smaller probabilities. 
+The vast majority of respondents had probability of `r names(table(data$prob))[which.max(table(data$prob))]` or 0.00020306164012234 (i.e. one in `r round(1/as.numeric(names(table(data$prob))[which.max(table(data$prob))]),0)` and one in `r round(1/0.00020306164012234,0)`). We see a minority of around 15% of observations with smaller probabilities. These probabilities might seem very small. This is because the whole population is very large and the survey only sampled a small part of it. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+table(round(data$prob*100,6))
+```
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 ggplot(data, aes(x = prob)) +
@@ -368,17 +372,13 @@ ggplot(data, aes(x = prob)) +
 
 ```
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-table(round(data$prob*100,6))
-```
-
-
-We see that 
+The sampling probability of respondents seems to be related to the type of dwelling of respondents and the number of people in their household. We would have expected this as some types of dwellings might tend to be linked to a single address. For other (smaller) types there might usually be many dwellings sharing the same address^[As we explained before, this is relevant because sampling allocation inside Primary Sampling Units (postcode sectors) was proportional to the number of adresses in each of these. Therefore, if an address contains a large number of dwellings, each dwelling will have a smaller probability of being sampled than a dwelling that is the only one in an address.].
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 data %>%
+  filter(!is.na(prob)) %>%
   group_by(type) %>%
   summarise(n = n(),
     mean.prob.percentage = mean(prob, na.rm = T)*100) %>%
@@ -394,6 +394,7 @@ data %<>%
                                                         `+5` = "8"))
 
 data %>%
+  filter(!is.na(prob)) %>%
   filter(!is.na(hhmmb.factor)) %>%
   group_by(hhmmb.factor) %>%
   summarise(n = n(),
@@ -402,7 +403,7 @@ data %>%
 
 ```
 
-The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d_0*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
+The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d~0~*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
 
 
 Here we compute the base weight from the probability given in the ESS database.   
@@ -442,7 +443,7 @@ data %<>%
 As I mentioned before, base weights should sum up to the entire population from which the sample is drawn or to the total number of respondents if scaled (as they did in the ESS).  
 
 
-## Step 2: Non-response weights {#nonresponse weights}
+## Step 2: Non-response weights {#nonresponse_weights}
 
 ### What are of non-response weights?
 
