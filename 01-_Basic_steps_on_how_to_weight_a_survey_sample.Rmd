@@ -332,11 +332,12 @@ data[c(resp.id, resp.x)] %>%
 
 The first step in weighing is taking into account the different probabilities of being sampled that respondents may have. The 7th ESS did not use a register of people in the UK (in other countries they did). They first selected postcode sectors from the Post Office’s small user postcode address file (PAF) merging smaller sectors. The probability of each PAF of being selected was proportional to the number of addresses it contained. Then, they selected 20 addresses inside of each sampled PAF and a dwelling for each address. For each dewlling they selected a household and then a person in each household. The full explanation of the sampling procedure is given in page 163 of The data documentation report ([Edition 3.1](http://www.europeansocialsurvey.org/docs/round7/survey/ESS7_data_documentation_report_e03_1.pdf)). 
 
-This sampling design is typical of survey frames where there is an available/public list of addresses but not a list of households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dwellings, dwellings that include smaller number of households and households that comprise smaller number of people.
+This sampling design is typical of survey frames where there is an available/public list of addresses but not a list of households or individuals. If we don't weight this survey, we would probably over-represent people in addresses that have smaller number of dwellings, dwellings that include smaller number of households and households that comprise smaller number of people (we will actually see this below).
 
-Fortunately for us, the probablity of each respondent of being sampled was computed by national experts and included in the 7th ESS dataset. In many projects, however, we would have to compute sampling probailities ourselves. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
+Fortunately for us, the probablity of each respondent of being sampled was computed by national experts and included in the 7th ESS dataset. In many projects, however, we would have to compute sampling probailities ourselves^[In 'real' projects where we do the sampling ourselves we would have the sampling probability of both respondents and non-respondents. This example shows us that it is enough to know the probablity of inclsion of respondents.]. A basic but **important test** that should be performed after computing the probabilities is making sure that all probabilities are between 0 and 1.
 
 We will perform this test in the next chunk of code, which should give us an error if any of the probabilities is not in the interval $[0,1]$.
+
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 probabilities <- data %>%
@@ -352,7 +353,6 @@ rm(probabilities)
 
 ```
 
-
 We see that there are actually `r length(unique(data$prob))` unique sampling probabilities computed in the dataset. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -360,7 +360,7 @@ unique(sort(data$prob))
 
 ```
 
-The vast majority of respondents had probability of `r names(table(data$prob))[which.max(table(data$prob))]` or 0.00020306164012234 (i.e. one in `r round(1/as.numeric(names(table(data$prob))[which.max(table(data$prob))]),0)` and one in `r round(1/0.00020306164012234,0)`). We see a minority of around 15% of observations with smaller probabilities. These probabilities might seem very small. This is because the whole population is very large and the survey only sampled a small part of it. 
+The vast majority of respondents had probability of `r as.numeric(names(table(data$prob))[which.max(table(data$prob))]) %>% round(9)` or 0.00020306 (i.e. one in `r round(1/as.numeric(names(table(data$prob))[which.max(table(data$prob))]),0)` and one in `r round(1/0.00020306164012234,0)`). We see a minority of around 15% of observations with smaller probabilities. These probabilities might seem very small. This is because the whole population is very large and the survey only sampled a small part of it. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 table(round(data$prob*100,6))
@@ -372,8 +372,9 @@ ggplot(data, aes(x = prob)) +
 
 ```
 
-The sampling probability of respondents seems to be related to the type of dwelling of respondents and the number of people in their household. We would have expected this as some types of dwellings might tend to be linked to a single address. For other (smaller) types there might usually be many dwellings sharing the same address^[As we explained before, this is relevant because sampling allocation inside Primary Sampling Units (postcode sectors) was proportional to the number of adresses in each of these. Therefore, if an address contains a large number of dwellings, each dwelling will have a smaller probability of being sampled than a dwelling that is the only one in an address.].
+The sampling probability of respondents seems to be related to the type of dwelling of respondents and the number of people in their household. We would have expected this as some types of dwellings might tend to be linked to a single address. For other (smaller) types there might usually be many dwellings sharing the same address^[As we explained before, this is relevant because sampling allocation inside Primary Sampling Units (postcode sectors) was proportional to the number of adresses in each of these. Therefore, if an address contains a large number of dwellings, each dwelling will have a smaller probability of being sampled than a dwelling that is the only one in an address.]. Something similar would happen for size of household. Individuals in large households would have smaller probabilities of being sampled than individuals who are the only person in the household. 
 
+These differences in sampling probabilities across dweling type and household size show that, without any kind of adjustment, our sample would over-represent people living in certain types of dweling (e.g. 'Multi-unit house, flat') and people living in small households. If respondents from living in different types of dwellings and household sizes had differences in our *'Y'* variables (e.g. smoked more or drank more alcohol) then our estimates from the survey sample would be biased.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -403,10 +404,9 @@ data %>%
 
 ```
 
-The base weights are equal to the inverse of the probability of inclusion. Therefore, the base weight (*d~0~*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$. 
+To solve these differences in sampling probabilities we have to compute **design weights** (sometimes also called **base weights**. The design weights are equal to the inverse of the probability of inclusion to the sample. Therefore, the design weight (*d~0~*) of a respondent (*i*) will be equal to: $d_{0i} =  1/\pi_{i}$ where $pi_{i}$ is the probability of that unit of being included in the sampling.
 
-
-Here we compute the base weight from the probability given in the ESS database.   
+Here we compute the design weight from the probability given in the ESS database.   
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
