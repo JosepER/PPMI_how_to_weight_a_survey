@@ -1,6 +1,6 @@
 ---
 title: "(Very) basic steps on how to weight a survey sample V0.2"
-author: "JosepER"
+author: "Josep Espasa Reig"
 subtitle: An explained example with R code
 output:
   html_document:
@@ -50,7 +50,7 @@ Next sections will first give a very broad glimpse at all [main survey weighting
 
 For more information you can check the following introductory texts:
 
-  * Valliant et al (2013) *Practical Tools for Designing and Weighting Survey Samples*. New York: Springer Science Business Media.
+  * Valliant et al. (2013) *Practical Tools for Designing and Weighting Survey Samples*. New York: Springer Science Business Media.
   * Lohr,S.L. (2009) *Sampling: Design and Analysis*. 2nd Edition. Boston: Books/Cole.
   * Blair, E. & Blair, J. (2015) *Applied Survey Sampling*. London: SAGE Publications Inc.  
   
