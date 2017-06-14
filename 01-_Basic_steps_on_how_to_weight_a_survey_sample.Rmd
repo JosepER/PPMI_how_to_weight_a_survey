@@ -581,11 +581,11 @@ rm(coef.response.log, formula, i)
 
 ### Creating non-response adjustment classes
 
-Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.
+Here we will follow the procedure for creating classes explained in pag. 329 of Valliant et al.(2013). From their text it is not so clear how many classes should be created.
 
 Looking at the distribution of estimated probabilities of response, we observe a large majority of values between `r quantile(predicted.log, probs = 0.2) %>% round(1) ` and `r quantile(predicted.log, probs = 0.9) %>% round(1)`. However, there are several outliers at both ends of the distribution. 
 
-As there is not so much dispersion in values in the middle of the distribution, creating classess accoring to quintiles might not be the best way to account for differences in estimated response propensities. However, other methods might create classess which are too specific to outliers. This is kind of a bias-variance trade off. If we fit broad classes which encompass very different estimated probabilities within them, we will be adjusting less and so keeping more bias in our estiamtes. If we create tight classes capturing these outliers, then we will have  large differences in weights and so more variance in our estimates. 
+As there is not so much dispersion in values in the middle of the distribution, creating classess accoring to quintiles might not be the best way to account for differences in estimated response propensities. However, other methods might create classess which are too specific to outliers. This is kind of a bias-variance trade off. If we fit broad classes which encompass very different estimated probabilities within them, we will be adjusting less and so keeping more bias in our estiamtes. If we create tight classes capturing these outliers, then we will have large differences in weights and so more variance in our estimates. 
 
 
 ```{r,  warning=FALSE, message=FALSE}
@@ -593,7 +593,6 @@ As there is not so much dispersion in values in the middle of the distribution, 
 predicted.log.tr %>% quantile(probs = seq(0,1,0.05)) %>% round(4)
 
 ```
-
 
 These are the 5 classes created using 20th, 40th, 60th and 80th quintiles.
 
@@ -606,7 +605,7 @@ data.nonresponse.model$predicted.class %>% levels()
 
 ```
 
-And below there is a summary of the estimated propensities included in each of them (in boxplots).We can see that the first and last groups have more dispersion in propensities. The middle three groups have very little dispersion and are similar between them.
+Below there is a summary of the estimated propensities included in each of them (in boxplots). We can see that the first and last groups have more dispersion in propensities. The middle three groups have very little dispersion and are similar between them. In this case they are so similar that we could even consider merging them into one single group.
 
 ```{r,  warning=FALSE, message=FALSE}
 
@@ -614,7 +613,6 @@ ggplot(data.nonresponse.model, aes(x = predicted.class, y = predicted.log.tr)) +
   geom_boxplot()
 
 ```
-
 
 To compute the non-response weights, we can use the mean estimated probability of response in each class. 
 
@@ -643,11 +641,11 @@ data.nonresponse.model$nonresp.weight %>% unique %>% sort
 
 ### Testing non-response adjustment classes
 
-After creating the classes, a good practice would be to check for covariate balance. This procedure is explained in pag. 330 of Valliant et al. Units in the same class should have similar values in covariates. At the same time, we would ideally find differencess between classes. In plain words, here we would check if classe are made of homogeneous units (within-class check) and if classes really distinguish different profiles of these (between-class check). For the within-group check, we are especially interested in checking if profiles of respondents and non-respondents within each class are similar. 
+After creating the classes, a good practice would be to check for covariate balance. This procedure is explained in pag. 330 of Valliant et al.(2013). Units in the same class should have similar values in covariates. At the same time, we would ideally find differencess between classes. In other words, here we would check if classes are made of homogeneous units (within-class check) and if they really distinguish different profiles of these (between-class check). For the within-group check, we are especially interested in checking if profiles of respondents and non-respondents within each class are similar. 
 
-In my opinion, the best way of doing this analysis is by fitting two different regressions for each covariate. As an example I will do the balance analysis for the ordinal covariate *physa*. In a real analysis this should be repeated for all covariates.
+The best way of doing this analysis might be fitting two different regressions for each covariate^[This procedure slightly differs from that recommended in Valliant et al.(2013), where they suggest to fit only one regression per covariate. Interpreting the lower order coefficients from a regression with interactions between class predictors and a response indicator might not be interpreted as the authors from Valliant et al.(2013) argue.]. As an example we will do the balance analysis for the ordinal covariate *physa*. In a real analysis this should be repeated for all covariates.
 
-For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*), I will use al ordered logistic regression. An alternative would be to treat the covariate as a continous varaible and use an OLS regression. 
+For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*) with four categories (*'Very bad'*, *'Bad'*, *'Satisfactory'*, *'Good'*, *'Very good'*), we will use al ordered logistic regression. An alternative would be to treat the covariate as a continous varaible and use an OLS regression. 
 
 The variable *physa* compares the 'Overall physical condition building/house'. The variable is negativelly coded so larger values mean worse physical condition. The coefficients of the ordered logistic regression show that the larger the estimated propensity, the smaller the probability of being in bad physical conditions. Therefore, people in houses with worse physical conditions would have smaller response propensity and so be underrepresented in our sample. From the coefficients below we see that the classes we have created for non-response adjustment somehow explain differences in our analysed covariate. However, ideally we would have a more clear effect of classes on our covariate. We see that the second adjustment class created (that for estimated propensities between 0.41 and 0.443) actually has larger probabilities of having worse physical conditions than the base category (0 to 0.41). At the same time, the third and fourth categories (0.443 to 0.459) and (0.459 to 0.485) have very similar coefficients, which might indicate that they do not really distinguish different classes of sampled units. 
 
