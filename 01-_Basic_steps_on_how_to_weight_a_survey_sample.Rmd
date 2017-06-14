@@ -526,9 +526,11 @@ data %<>%
 
 ### Estimating response propensities using logistic regression
 
-Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. The grouping step should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities. 
+Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. The grouping step should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities.
 
 In order to do a logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the *'glm'* function with a *'family = binomial'* argument. 
+
+The following output shows the first six estimated response propensities of our dataset.
 
 ```{r,  warning=FALSE, message=FALSE}
 formula <- as.formula("response ~ type + access + physa + littera + vandaa")
@@ -551,10 +553,10 @@ predicted.log %>% head()
 
 ```
 
-As explained before, we are now computing our estimates from a subset of sampled units. This does not take into account many non-respondents which had missing values in all predictors of our non-response model. This means that the previous propensities are slightly overestimated. This is because the response rate in our full dataset is `r mean(data$response) %>% round(3)` and in our subset used for non-response adjustment is `r mean(data.nonresponse.model$response) %>% round(3)`. 
-This is not entirely related to non-response weight adjustment so I will just compute the new estimates with modified intercept in the next chunk and I will not explain in depth how to perform the trasformation. For an excellent description on how it's done I will refer to Stanford University's online course on [SP Statistical Learning](https://lagunita.stanford.edu/courses/HumanitiesSciences/StatLearning/Winter2016/info).
+As explained before, we are now computing our estimates from a subset of sampled units. This does not take into account many non-respondents which had missing values in all predictors of our non-response model. This means that the previous propensities are slightly overestimated. This is because the response rate in our full dataset is `r (mean(data$response)*100) %>% round(1) %>% paste0("%")` and in our subset used for non-response adjustment is `r (mean(data.nonresponse.model$response)*100) %>% round(1) %>% paste0("%")`. 
+This is not entirely related to non-response weight adjustment so we will just compute the new estimates with modified intercept in the next chunk and skip the explanation on how to perform the trasformation. For an excellent description on how it's done readers can check Stanford University's online course on [SP Statistical Learning](https://lagunita.stanford.edu/courses/HumanitiesSciences/StatLearning/Winter2016/info).
 
-Below the next chunk of code you can see the first six transformed estimated response propensities.
+Below the next chunk of code you can see the first six transformed estimated response propensities of our dataset.
 
 ```{r,  warning=FALSE, message=FALSE}
 
@@ -576,12 +578,12 @@ rm(coef.response.log, formula, i)
 
 ```
 
-### Creating non-response adjustment classes
 
+### Creating non-response adjustment classes
 
 Here I'll follow the procedure for creating classes explained in pag. 329 of Valliant et al. It is not so clear how many classes should be created.
 
-Looking at the distribution of estimated probabilities of response, we observe a large majority of values between `r quantile(predicted.log, probs = 0.2) %>% round(1)` and `r quantile(predicted.log, probs = 0.9) %>% round(1)`. However, there are several outliers at both ends of the distribution. 
+Looking at the distribution of estimated probabilities of response, we observe a large majority of values between `r quantile(predicted.log, probs = 0.2) %>% round(1) ` and `r quantile(predicted.log, probs = 0.9) %>% round(1)`. However, there are several outliers at both ends of the distribution. 
 
 As there is not so much dispersion in values in the middle of the distribution, creating classess accoring to quintiles might not be the best way to account for differences in estimated response propensities. However, other methods might create classess which are too specific to outliers. This is kind of a bias-variance trade off. If we fit broad classes which encompass very different estimated probabilities within them, we will be adjusting less and so keeping more bias in our estiamtes. If we create tight classes capturing these outliers, then we will have  large differences in weights and so more variance in our estimates. 
 

@@ -755,8 +755,8 @@ data %&lt;&gt;%
 </div>
 <div id="estimating-response-propensities-using-logistic-regression" class="section level3">
 <h3>Estimating response propensities using logistic regression</h3>
-<p>Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. This should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities.</p>
-<p>In order to do a Logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the ‘lm’ function.</p>
+<p>Valliant et al (2013) recommend estimating the response propensities and then grouping them in classes. The grouping step should avoid extreme weights. One way of estimating the response propensities is using logistic regression. This logistic regression should be unweighted. Later in this section we will try other ways of computing estimates of response propensities.</p>
+<p>In order to do a logistic regression in R, we need to specify the dependent variable (response) and predictors (type, access, physa, littera and vandaa) in a formula. Then we input the formula and the dataset into the <em>‘glm’</em> function with a <em>‘family = binomial’</em> argument.</p>
 <pre class="r"><code>formula &lt;- as.formula(&quot;response ~ type + access + physa + littera + vandaa&quot;)
 
 options(na.action = 'na.pass')
