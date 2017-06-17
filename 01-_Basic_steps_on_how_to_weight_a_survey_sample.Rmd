@@ -1,7 +1,7 @@
 ---
-title: "(Very) basic steps on how to weight a survey sample"
+title: "(Very) basic steps to weight a survey sample"
 author: "Josep Espasa Reig"
-subtitle: An explained example with R code V0.2
+subtitle: An explained example with R code - V0.2
 output:
   html_document:
     theme: united
@@ -645,7 +645,7 @@ After creating the classes, a good practice would be to check for covariate bala
 
 The best way of doing this analysis might be fitting two different regressions for each covariate^[This procedure slightly differs from that recommended in Valliant et al.(2013), where they suggest to fit only one regression per covariate. Interpreting the lower order coefficients from a regression with interactions between class predictors and a response indicator might not be interpreted as the authors from Valliant et al.(2013) argue.]. As an example we will do the balance analysis for the ordinal covariate *physa*. In a real analysis this should be repeated for all covariates.
 
-For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*) with four categories (*'Very bad'*, *'Bad'*, *'Satisfactory'*, *'Good'*, *'Very good'*), we will use al ordered logistic regression. An alternative would be to treat the covariate as a continous varaible and use an OLS regression. 
+For the between-class check, we can fit a model only with class predictors. This should show if classes explain differences in covariate variables. As we have an ordinal covariate (*physa*) with four categories (*'Very bad'*, *'Bad'*, *'Satisfactory'*, *'Good'*, *'Very good'*), we will use an ordered logistic regression. An alternative would be to treat the covariate as a continous varaible and use an OLS regression. 
 
 The variable *physa* compares the 'Overall physical condition building/house'. The variable is negativelly coded so larger values mean worse physical condition. The coefficients of the ordered logistic regression show that the larger the estimated propensity, the smaller the probability of being in bad physical conditions. Therefore, people in houses with worse physical conditions would have smaller response propensity and so be underrepresented in our sample. From the coefficients below we see that the classes we have created for non-response adjustment somehow explain differences in our analysed covariate. However, ideally we would have a more clear effect of classes on our covariate. We see that the second adjustment class created (that for estimated propensities between 0.41 and 0.443) actually has larger probabilities of having worse physical conditions than the base category (0 to 0.41). At the same time, the third and fourth categories (0.443 to 0.459) and (0.459 to 0.485) have very similar coefficients, which might indicate that they do not really distinguish different classes of sampled units. 
 
@@ -668,7 +668,7 @@ ctable.between
 
 For the within-class check, we can extend our model to include interactions between class and response. This will check if, within a non-response class, there are differences between respondents and non-respondents in our covariate *physa* (ideally they wouldn't be and we would not find them).
 
-In this second test (see coefficients below) we see that one of the interactions has a significant coefficient at 5% confidence level. Ideally, all interaction terms would be non-significant, meaning that we do not observe within-group differences between respondents and non-respondents in our covariates. A way of dealing with this situation with one significant coefficient would be to explore other ways of spliting units into classes. However, as explained before, these other categorisations would have drawbacks in terms of inflated variance. Moreover, if we have a large number of classes and covariates, we would expect to find significant coefficients just by chance. Therefore, as long as these unbalances are not extended most classes and covariates, reporting these unbalances should be enough.
+In this second test (see coefficients below) we see that one of the interactions has a significant coefficient at 5% confidence level. Ideally, all interaction terms would be non-significant, meaning that we do not observe within-group differences between respondents and non-respondents in our covariates. A way of dealing with this situation with one significant coefficient would be to explore other ways of spliting units into classes. However, as explained before, these other categorisations would have drawbacks in terms of inflated variance. Moreover, if we have a large number of classes and covariates, we would expect to find significant coefficients just by chance. Therefore, as long as these unbalances do not occur for most classes and covariates, reporting these unbalances should be enough. In this example, we see that the differences in the physical condition of their houses we observe within each computed class respondents and non-respondents are so small that might be due to sampling error^[With the exception of differences in class (0.389,0.421\], which seem too large to be caused just by sampling error.].
 
 
 ```{r,  warning=FALSE, message=FALSE}
@@ -692,13 +692,13 @@ rm(formula., test.within.model, p, indep.vars.nonresponse, i, test.between.model
 
 ### Propensity adjustment (alternative to adjustment classes)
 
-An alternative to computing class adjustments is to directly use the inverse of the estimated probabilities of response. Adjustment classes act are a way of 'smoothing' predictions, avoiding extreme values and overfit. Therefore, they are based in some kind of mistrust of statistical models. Even if they are a standard procedure in survey methodology and backed by solid literature, they might look a bit naive to researchers coming from other areas (e.g. econometrics, genomics, etc.). Adjusting directly with propensity scores relies more on statistical/modelling skills of researchers. Here we will show a couple of alternative methods. As previously explained, these need to avoid being too specific to our data. Instead, they should try to give information on the distribution that generated this data.
+An alternative to computing class adjustments is to directly use the inverse of the estimated probabilities of response. Adjustment classes act are a way of 'smoothing' predictions, avoiding extreme values and overfit. Therefore, they are based on some kind of 'mistrust' of statistical models. Even if they are a standard procedure in survey methodology and backed by solid literature, they might look a bit naive to researchers coming from other areas (e.g. econometrics, genomics, etc.). Adjusting directly with propensity scores relies more on statistical/modelling skills of researchers. Here we will show a couple of alternative methods. As previously explained, these need to avoid being too specific to our data. Instead, they should try to give information on the distribution that generated this data.
 
 #### Estimating response propensities using Cross-validated LASSO Regression.
 
-The first method we will try is a penalised regression, more specifically a LASSO regression. Penalised regressions are very similar to a logistic regression but have the particularity of having 'shrinked' coefficients. This reduces the influence of predictors to avoid overfit. In other words, it tries to avoid noise from our data set into the model. This is done by tunning the penalty parameters with cross-validation (a resampling method).
+The first method we will try is a penalised regression, more specifically a LASSO regression. Penalised regressions are very similar to a logistic regression but have the particularity of having 'shrinked' coefficients. This reduces the influence of predictors to avoid overfit. It does this by producing a model which would be better to predict 'unseen' data and is less specific to our data. In other words, it tries to avoid noise from our data set into the model. This is done by tunning the penalty parameters with cross-validation (a resampling method).
 
-The first six estimated propensities are after the chunk of code. 
+The first six estimated propensities are the output of the next code chunk. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
