@@ -858,42 +858,51 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 
 ## Step 3: Use of auxiliary data for weight calibration {#calibration}
 
-In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to 'correct' our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input ('final') weights but reproduce the population information exactly. Valliant et al 2013 explain that using the previous 'final' weights as input for the calibration step allows us to 'borrow' good estiamtion properties from those. 
+In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to 'correct' our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input ('final') weights but reproduce the population information exactly. Valliant et al (2013) explain that using the previous 'final' weights as input for the calibration step allows us to 'borrow' good estiamtion properties from those.
 
-An important difference between this step of using auxiliary data for calibration and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general. 
+An important difference between this step and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general. 
 
-Here I will calibrate weights using a 'raking' procedure (explained in Valliant el al 2013 page 358). A practical difference between this method and other ones is that it does not requiere information on cross-classification categories but just marginal population counts. In other words, we do not need the information from crossing several variables (although we can use it if available). As explained by Lumley (2010, page 139), the process is very much iterative. It involves post-stratifying on each set of variables in turn, and repeating the process until the weights stop changing. 
+Here we will calibrate weights using a 'raking' procedure (explained in Valliant el al 2013 page 358). Unlike other calibration methods, 'raking' does not requiere information on cross-classification categories but just marginal population counts. In other words, we do not need the information from crossing several variables (although we can use it if available). As explained by Lumley (2010, page 139), the process is very much iterative. It involves post-stratifying on each set of variables in turn, and repeating the process until the weights stop changing. 
 
-The ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document [Documentation of ESS
+The 7th ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document [Documentation of ESS
 Post-Stratification Weights](http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf)
 
-First we will compute the interaction between gender and age with the categories used for ESS calibration. 
+First we will compute the interaction between gender and age with the categories used for calibration in the ESS. 
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
 data %<>%
   mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99))) %>%
-         unite(col = gender_age_rec, gndr, agea_rec, remove = F) 
+         unite(col = gender_age_rec, gndr, agea_rec, remove = F) %>%
+  mutate(gender_age_rec = replace(x = gender_age_rec, 
+                                  list = gender_age_rec %in% c("Female_NA", "Male_NA"),
+                                  values = NA ))
+
+#data %>%
+ # mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99)))
+
+#%>%
+ #        unite(col = gender_age_rec, gndr, agea_rec, remove = F) 
 
 ```
 
-These are the total number of weighted units in each of the categories we will use for calibration can be seen in the tables below.
+The total number of weighted units in each of the categories we will use for calibration can be seen in the tables below^[There is a small problem with 20 respondents for which we do not have information about their age. In order to keep thing simple this example we will ignore this issue.].
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-data$agea %>% is.na() %>% sum() # Need to address these 20 nas. DELETE!
-
 data %>%
+  filter(!is.na(gender_age_rec)) %>% # see footnote in text above.
   group_by(gender_age_rec) %>%
   summarise(total_n_sample = sum(final.weight))
 
 data %>%
+  filter(!is.na(gender_age_rec)) %>%
   group_by(region) %>%
   summarise(total_n_sample = sum(final.weight))
 
 ```
 
-Now we import Eurostat data and recode it into ESS adjustment/post-stratification categories.
+Now we import Eurostat data and recode it into ESS adjustment/post-stratification categories.(Explain exact source of data and computations from it)
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
