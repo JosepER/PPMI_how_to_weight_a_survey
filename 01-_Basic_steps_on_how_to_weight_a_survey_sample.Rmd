@@ -1015,20 +1015,24 @@ if( identical(age.gender.eurostat$gender_age_rec %>% unique %>% sort, data.calib
 
 ```
 
-Now we will use the R 'survey' package (Lumley,T., 2010) to calibrate weights using the raking procedure. We will do this twice. First time we will compute the raked weighs using our *'final.weight'* as an input. These contain information from both the base weights and our adjustment for non-response. In the second computation we will repeat the ESS design and use the design/base weights as an input (variable *'base.weight'*).   
+Now we will use the R *'survey'* package (Lumley,T., 2010) to calibrate weights using the raking procedure. We will do this twice. First time we will compute the raked weighs using our *'final.weight'* as an input. These contain information from both the base weights and our adjustment for non-response. In the second computation we will repeat the ESS design and use (only) the design/base weights as an input (variable *'base.weight'*). This will allow us to compare our output weights with those computed by the experts behind the weighting procedure of the 7th ESS. 
 
-explain how to 
+The R *'survey'* package works in a rather particular way^[It has its own requierements in terms of coding 'grammar'. This is may be because it was programmed in 2003, almost 15 years ago! Hopefully other packages such as *'srvyr'*, which at the time of writing this guide is still in version 0.2.1, will be able to take the content  of the *'survey'* package and adapt it to current scripting]. It first requieres to specify the design of the survey with the *'svydesign'* function. This creates an object of an adhoc class 'survey.design' that is passed to further procedures such as weights raking. 
 
-
-Explain a bit raking and stuff!
-
-I do it twice. Once to reproduce ESS weights and the other to compute my own weights which also include nr modelling. 
+The *'svydesign'* function requieres an *'ids'* argument with cluster ids. For the specific case of the 7th ESS in the UK, this would be the postal codes, which are the Primary Sampling Units (PSU). The procedures of the *'survey'* package would then take into account these related responses when computing variances. However, here we will ignore this fact and pretend that all responses where independent of each other (we can do this by passing *~ 0* to the *'ids'* argument). This should not affect the raking procedure. Next, we neet to specify the input weights in the *'weights'* argument. Here we will pass the computed *final weights* and the *design/base* weights respectively to create both survey designs. Last, we need to specify the data with the survey respondses in the *'data'* argument.     
+In this next chunk of code we will create these two objects which will correspond to the two explained computations of raked weights.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 our.svydesign <- svydesign(ids = ~ 0, weights = ~final.weight, data = data.calibration)
 
 ess.svydesign <- svydesign(ids = ~ 0, weights = ~base.weight, data = data.calibration)
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 our.raked <- rake(our.svydesign, sample.margins = list(~region, ~gender_age_rec), 
      population = list(region.eurostat, age.gender.eurostat))
@@ -1037,6 +1041,8 @@ ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec)
      population = list(region.eurostat, age.gender.eurostat))
 
 ```
+
+The raking procedure can be done with the *'rake'* function form the same package. 
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
