@@ -849,8 +849,8 @@ ctable.within</code></pre>
 <div id="propensity_adjustment" class="section level3">
 <h3>Propensity adjustment (alternative to adjustment classes)</h3>
 <p>An alternative to computing class adjustments is to directly use the inverse of the estimated probabilities of response. Adjustment classes act are a way of ‘smoothing’ predictions, avoiding extreme values and overfit. Therefore, they are based on some kind of ‘mistrust’ of statistical models. Even if they are a standard procedure in survey methodology and backed by solid literature, they might look a bit naive to researchers coming from other areas (e.g. econometrics, genomics, etc.). Adjusting directly with propensity scores relies more on statistical/modelling skills of researchers. Here we will show a couple of alternative methods. As previously explained, these need to avoid being too specific to our data. Instead, they should try to give information on the distribution that generated this data.</p>
-<div id="estimating-response-propensities-using-cross-validated-lasso-regression." class="section level4">
-<h4>Estimating response propensities using Cross-validated LASSO Regression.</h4>
+<div id="estimating-response-propensities-using-cross-validated-lasso-regression" class="section level4">
+<h4>Estimating response propensities using Cross-validated LASSO Regression</h4>
 <p>The first method we will try is a penalised regression, more specifically a LASSO regression. Penalised regressions are very similar to a logistic regression but have the particularity of having ‘shrinked’ coefficients. This reduces the influence of predictors to avoid overfit. It does this by producing a model which would be better to predict ‘unseen’ data and is less specific to our data. In other words, it tries to avoid noise from our data set into the model. This is done by tunning the penalty parameters with cross-validation (a resampling method).</p>
 <p>The first six estimated propensities are the output of the next code chunk.</p>
 <pre class="r"><code>formula. &lt;- as.formula(&quot;response ~ type + access + physa + littera + vandaa&quot;)
@@ -915,8 +915,8 @@ train.correct.lasso &lt;- table(data.nonresponse.model$response, data.nonrespons
 c(train.correct.logreg = train.correct.logreg, train.correct.lasso = train.correct.lasso)</code></pre>
 <pre><code>## train.correct.logreg  train.correct.lasso 
 ##            0.5755213            0.5737673</code></pre>
-<p>The two chunks below compute the cross-validated ratio of correctly classified units. We would expect these to be lower than the successfuly classified units for the whole sample. This is because cross-validation is a resampling method. We use it to get an idea of how our estimates (e.g. ratio of correctly classified units) would fit the whole statistical population (and not only the sample at hand).</p>
-<p>Cross-validated ratio of correctly classified units would vary each time we run the procedure. This will not happen here because I set a seed for random procedures at the beginning or the script. We observe that, for both methods, the cross-validated ratio of correctly classified units is slightly lower than the estimate for our sample. Also, both methods have a very similar predictive capacity.</p>
+<p>The two chunks below compute the cross-validated ratio of correctly classified units. We would expect these to be lower than the successfuly classified units for the whole sample. This is because cross-validation is a resampling method. We use it to get an idea of how our estimates (e.g. ratio of correctly classified units) would fit the whole statistical population which includes ‘unseen’ observations (i.e. not only the sample at hand).</p>
+<p>Cross-validated ratio of correctly classified units would vary each time we run the procedure. This will not happen here because we set a seed for random procedures at the beginning or the script. We observe that, for both methods, the cross-validated ratio of correctly classified units is slightly lower than the estimate for our sample. Also, both methods have a very similar predictive capacity.</p>
 <pre class="r"><code>folds &lt;- createFolds(data.nonresponse.model$response, k = 10, list = TRUE, returnTrain = FALSE)
 
 formula. &lt;- as.formula(&quot;response ~ type + access + physa + littera + vandaa&quot;)
@@ -981,9 +981,9 @@ for(i in 1:length(folds)){
   c(cv.success.log.reg = cv.success.log.reg, cv.success.glmnet = cv.success.glmnet)</code></pre>
 <pre><code>## cv.success.log.reg  cv.success.glmnet 
 ##          0.5718210          0.5690923</code></pre>
-<p>If we wanted to do an adjustment directly using the estimated propensity scores and without computing adjustment classes, we would just use the inverse of the estimated propensities as the non-response weights. It would be a good idea to use the Lasso predictions as these are less sparce than those from the logistic regression. Therefore, we might have less variance inflation with (almost) the same expected reduction in bias.</p>
-<p>If we had no information about population estimates, we would end the weighting procedure here. The ‘final weight’ would be the multiplicaiton of both base scaled weight and the scaled non-response weight. I will call this new weights ‘final weights’ although we still have to perform adjustments to them and so will not really be ‘final’.</p>
-<p>First I will include the computed non-response weights using adjustment classes to the main ‘data’ dataset. Then I will drop all non-respondents. This is because we are not going to use them any more in the next steps of our analysis. After that, I will scale the non-response weights to the sample of respondents and multiply the (scaled) design weights and the (scaled) non-response weights.</p>
+<p>If we wanted to do an adjustment directly using the estimated propensity scores and without computing adjustment classes, we would just use the inverse of the estimated propensities as the non-response weights. It would be a good idea to use the Lasso predictions as these are less sparce than those from the logistic regression. Therefore, we might have less variance inflation with (virtually) the same expected reduction in bias.</p>
+<p>If we had no information about population estimates, we would end the weighting procedure here. The ‘final weight’ would be the multiplicaiton of both base scaled weight and the scaled non-response weight. Here we will call this new weights ‘final weights’ although we still have to perform adjustments to them and so will not really be ‘final’.</p>
+<p>Before going to the next step we will include the computed non-response weights using adjustment classes to the main <em>‘data’</em> dataframe object. Then we will drop all non-respondents as we are not going to use them any more in the next steps of our analysis. After that, we will scale the non-response weights to the sample of respondents and multiply the (scaled) design weights and the (scaled) non-response weights.</p>
 <pre class="r"><code>data %&lt;&gt;%
   left_join(data.nonresponse.model %&gt;% select(idno, nonresp.weight),
             by = &quot;idno&quot;)
@@ -1000,51 +1000,58 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 </div>
 <div id="calibration" class="section level2">
 <h2>Step 3: Use of auxiliary data for weight calibration</h2>
-<p>In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to ‘correct’ our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input (‘final’) weights but reproduce the population information exactly. Valliant et al 2013 explain that using the previous ‘final’ weights as input for the calibration step allows us to ‘borrow’ good estiamtion properties from those.</p>
-<p>An important difference between this step of using auxiliary data for calibration and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general.</p>
-<p>Here I will calibrate weights using a ‘raking’ procedure (explained in Valliant el al 2013 page 358). A practical difference between this method and other ones is that it does not requiere information on cross-classification categories but just marginal population counts. In other words, we do not need the information from crossing several variables (although we can use it if available). As explained by Lumley (2010, page 139), the process is very much iterative. It involves post-stratifying on each set of variables in turn, and repeating the process until the weights stop changing.</p>
-<p>The ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document <a href="http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf">Documentation of ESS Post-Stratification Weights</a></p>
-<p>First we will compute the interaction between gender and age with the categories used for ESS calibration.</p>
+<p>In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to ‘correct’ our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input (‘final’) weights but reproduce the population information exactly. Valliant et al (2013) explain that using the previous ‘final’ weights as input for the calibration step allows us to ‘borrow’ good estiamtion properties from those.</p>
+<p>An important difference between this step and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general.</p>
+<p>Here we will calibrate weights using a ‘raking’ procedure (explained in Valliant el al 2013 page 358). Unlike other calibration methods, ‘raking’ does not requiere information on cross-classification categories but just marginal population counts. In other words, we do not need the information from crossing several variables (although we can use it if available). As explained by Lumley (2010, page 139), the process is very much iterative. It involves post-stratifying on each set of variables in turn, and repeating the process until the weights stop changing.</p>
+<p>The 7th ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document <a href="http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf">Documentation of ESS Post-Stratification Weights</a></p>
+<p>First we will compute the interaction between gender and age with the categories used for calibration in the ESS.</p>
 <pre class="r"><code>data %&lt;&gt;%
   mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99))) %&gt;%
-         unite(col = gender_age_rec, gndr, agea_rec, remove = F) </code></pre>
-<p>These are the total number of weighted units in each of the categories we will use for calibration can be seen in the tables below.</p>
-<pre class="r"><code>data$agea %&gt;% is.na() %&gt;% sum() # Need to address these 20 nas. DELETE!</code></pre>
-<pre><code>## [1] 21</code></pre>
+         unite(col = gender_age_rec, gndr, agea_rec, remove = F) %&gt;%
+  mutate(gender_age_rec = replace(x = gender_age_rec, 
+                                  list = gender_age_rec %in% c(&quot;Female_NA&quot;, &quot;Male_NA&quot;),
+                                  values = NA ))
+
+#data %&gt;%
+ # mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99)))
+
+#%&gt;%
+ #        unite(col = gender_age_rec, gndr, agea_rec, remove = F) </code></pre>
+<p>The total number of weighted units in each of the categories we will use for calibration can be seen in the tables below<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>.</p>
 <pre class="r"><code>data %&gt;%
+  filter(!is.na(gender_age_rec)) %&gt;% # see footnote in text above.
   group_by(gender_age_rec) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
-<pre><code>## # A tibble: 8 x 2
+<pre><code>## # A tibble: 6 x 2
 ##   gender_age_rec total_n_sample
 ##            &lt;chr&gt;          &lt;dbl&gt;
-## 1 Female_(14,34]     278.314489
-## 2 Female_(34,54]     442.539862
-## 3 Female_(54,99]     465.484445
-## 4      Female_NA      10.425803
-## 5   Male_(14,34]     256.538836
-## 6   Male_(34,54]     358.882308
-## 7   Male_(54,99]     427.439728
-## 8        Male_NA       7.325394</code></pre>
+## 1 Female_(14,34]       278.3145
+## 2 Female_(34,54]       442.5399
+## 3 Female_(54,99]       465.4844
+## 4   Male_(14,34]       256.5388
+## 5   Male_(34,54]       358.8823
+## 6   Male_(54,99]       427.4397</code></pre>
 <pre class="r"><code>data %&gt;%
+  filter(!is.na(gender_age_rec)) %&gt;%
   group_by(region) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
 <pre><code>## # A tibble: 13 x 2
 ##                      region total_n_sample
 ##                      &lt;fctr&gt;          &lt;dbl&gt;
-##  1     North East (England)     109.772692
+##  1     North East (England)     108.773320
 ##  2     North West (England)     255.854324
-##  3 Yorkshire and the Humber     166.220830
-##  4  East Midlands (England)     176.531407
-##  5  West Midlands (England)     179.577054
-##  6          East of England     183.722435
-##  7                   London     247.805999
-##  8     South East (England)     321.601954
-##  9     South West (England)     188.804075
-## 10                    Wales     127.885681
-## 11                 Scotland     223.724930
+##  3 Yorkshire and the Humber     165.794760
+##  4  East Midlands (England)     175.985529
+##  5  West Midlands (England)     177.854711
+##  6          East of England     182.018157
+##  7                   London     239.266038
+##  8     South East (England)     320.667253
+##  9     South West (England)     187.951935
+## 10                    Wales     127.377050
+## 11                 Scotland     222.207105
 ## 12         Northern Ireland      63.236400
 ## 13                       NA       2.213085</code></pre>
-<p>Now we import Eurostat data and recode it into ESS adjustment/post-stratification categories.</p>
+<p>Now we import Eurostat data and recode it into ESS adjustment/post-stratification categories.(Explain exact source of data and computations from it)</p>
 <pre class="r"><code>age.gender.eurostat &lt;- read_delim(&quot;data/Eurostat/Agebygender_demo_pjangroup.csv&quot;, delim = &quot;,&quot;)
 
 age.gender.eurostat %&gt;%
@@ -1235,6 +1242,7 @@ original.weights %&gt;% select(idno, pspwght)
 <li id="fn3"><p>This procedure slightly differs from that recommended in Valliant et al.(2013), where they suggest to fit only one regression per covariate. Interpreting the lower order coefficients from a regression with interactions between class predictors and a response indicator might not be interpreted as the authors from Valliant et al.(2013) argue.<a href="#fnref3">↩</a></p></li>
 <li id="fn4"><p>With the exception of differences in class (0.389,0.421], which seem too large to be caused just by sampling error.<a href="#fnref4">↩</a></p></li>
 <li id="fn5"><p>Although it could also be the case that we are missing to explore some important interaction between predictors<a href="#fnref5">↩</a></p></li>
+<li id="fn6"><p>There is a small problem with 20 respondents for which we do not have information about their age. In order to keep thing simple this example we will ignore this issue.<a href="#fnref6">↩</a></p></li>
 </ol>
 </div>
 
