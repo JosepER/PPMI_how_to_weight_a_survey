@@ -852,7 +852,7 @@ data %<>%
          final.weight = base.weight.scaled * nonresp.weight.scaled)
 
 rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
-   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg, data.nonresponse.model)
+   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)
 
 ```
 
@@ -938,9 +938,9 @@ region.eurostat %<>%
   
 ```
 
-I will now scale the Eurostat data to our sample size. The idea is to obtain the weights that make our sample proportions look like those in Eurostat. For these, we will calculate how many respondents in our sample should pertain to each category if we had Eurostat proportions. We will use our sample size based only on (weighted) completed observations in our post-stratification adjustment variables (age, gender and region).
+We will now scale the Eurostat data to our sample size. The idea is to obtain the weights that make our sample proportions look like those in Eurostat. For these, we will calculate how many respondents in our sample should pertain to each category if we had Eurostat proportions. We will use our sample size based only on (weighted) completed responses in our post-stratification adjustment variables (age, gender and region).
 
-Total (weighted) observations in our sample with completed observations:
+First we compute the total (weighted) observations in our sample of respondents.
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -951,6 +951,8 @@ weighted.pop <- sum(data.calibration$final.weight)
 weighted.pop
 
 ```
+
+In the next chunk of code we will scale Eurostat population by age an gender data to the size of our sample. We will do this by dividing Eurostat absolute population numbers by the sum of population in all categories and multiplying it by the previously computed sum of weighted respondents. This will provide us a dataframe (*'age.gender.eurostat'*) with the number of respondents our survey sample should have in each gender and age crossed category if it was to resemble the proportions found in reality (i.e. official statistics).
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -969,9 +971,13 @@ age.gender.eurostat$gender_age_rec <- c("Female_(14,34]", "Male_(14,34]",
                                         "Female_(34,54]", "Male_(34,54]",
                                         "Female_(54,99]", "Male_(54,99]")
 
+age.gender.eurostat
+
 rm(total.population)
 
 ```
+
+Next we will do the same for Eurostat's population data on NUTS 2 regions.
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -995,6 +1001,8 @@ region.eurostat$region[region.eurostat$region == "Yorkshire and The Humber"] <- 
 
 ```
 
+Here we will briefly test that we have the same categories in calibration variables of both survey and Eurostat datasets.
+
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
 if( identical(region.eurostat$region %>% unique %>% sort, data.calibration$region %>% as.character() %>% unique %>% sort) != T) {
@@ -1007,8 +1015,10 @@ if( identical(age.gender.eurostat$gender_age_rec %>% unique %>% sort, data.calib
 
 ```
 
+Now we will use the R 'survey' package (Lumley,T., 2010) to calibrate weights using the raking procedure. We will do this twice. First time we will compute the raked weighs using our *'final.weight'* as an input. These contain information from both the base weights and our adjustment for non-response. In the second computation we will repeat the ESS design and use the design/base weights as an input (variable *'base.weight'*).   
 
-Now it's time to calibrate! 
+explain how to 
+
 
 Explain a bit raking and stuff!
 

@@ -995,7 +995,7 @@ data %&lt;&gt;%
          final.weight = base.weight.scaled * nonresp.weight.scaled)
 
 rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
-   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg, data.nonresponse.model)</code></pre>
+   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)</code></pre>
 </div>
 </div>
 </div>
@@ -1073,14 +1073,15 @@ region.eurostat %&lt;&gt;%
 region.eurostat %&lt;&gt;%
   group_by(Country) %&gt;%
   summarise(pop_sum = sum(population) )</code></pre>
-<p>I will now scale the Eurostat data to our sample size. The idea is to obtain the weights that make our sample proportions look like those in Eurostat. For these, we will calculate how many respondents in our sample should pertain to each category if we had Eurostat proportions. We will use our sample size based only on (weighted) completed observations in our post-stratification adjustment variables (age, gender and region).</p>
-<p>Total (weighted) observations in our sample with completed observations:</p>
+<p>We will now scale the Eurostat data to our sample size. The idea is to obtain the weights that make our sample proportions look like those in Eurostat. For these, we will calculate how many respondents in our sample should pertain to each category if we had Eurostat proportions. We will use our sample size based only on (weighted) completed responses in our post-stratification adjustment variables (age, gender and region).</p>
+<p>First we compute the total (weighted) observations in our sample of respondents.</p>
 <pre class="r"><code>data.calibration &lt;- data
 
 weighted.pop &lt;- sum(data.calibration$final.weight)
 
 weighted.pop</code></pre>
 <pre><code>## [1] 2226.987</code></pre>
+<p>In the next chunk of code we will scale Eurostat population by age an gender data to the size of our sample. We will do this by dividing Eurostat absolute population numbers by the sum of population in all categories and multiplying it by the previously computed sum of weighted respondents. This will provide us a dataframe (<em>‘age.gender.eurostat’</em>) with the number of respondents our survey sample should have in each gender and age crossed category if it was to resemble the proportions found in reality (i.e. official statistics).</p>
 <pre class="r"><code>age.gender.eurostat %&lt;&gt;%
   gather(key = age, value = population, -SEX) %&gt;%
   unite(col = gender_age_rec, SEX, age) 
@@ -1096,7 +1097,16 @@ age.gender.eurostat$gender_age_rec &lt;- c(&quot;Female_(14,34]&quot;, &quot;Mal
                                         &quot;Female_(34,54]&quot;, &quot;Male_(34,54]&quot;,
                                         &quot;Female_(54,99]&quot;, &quot;Male_(54,99]&quot;)
 
-rm(total.population)</code></pre>
+age.gender.eurostat</code></pre>
+<pre><code>##   gender_age_rec Freq
+## 1 Female_(14,34]  352
+## 2   Male_(14,34]  358
+## 3 Female_(34,54]  372
+## 4   Male_(34,54]  364
+## 5 Female_(54,99]  417
+## 6   Male_(54,99]  364</code></pre>
+<pre class="r"><code>rm(total.population)</code></pre>
+<p>Next we scale the</p>
 <pre class="r"><code>total.population &lt;- region.eurostat$pop_sum %&gt;%
   sum()
 
