@@ -146,7 +146,8 @@ $(document).ready(function () {
 </ul>
 </div>
 
-<pre class="r"><code>library(MASS)
+<pre class="r"><code>library(RCurl)
+library(MASS)
 library(glmnet)
 library(caret)
 library(survey)
@@ -994,16 +995,16 @@ data %&lt;&gt;%
          final.weight = base.weight.scaled * nonresp.weight.scaled)
 
 rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
-   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)</code></pre>
+   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg, data.nonresponse.model)</code></pre>
 </div>
 </div>
 </div>
 <div id="calibration" class="section level2">
 <h2>Step 3: Use of auxiliary data for weight calibration</h2>
-<p>In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to ‘correct’ our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input (‘final’) weights but reproduce the population information exactly. Valliant et al (2013) explain that using the previous ‘final’ weights as input for the calibration step allows us to ‘borrow’ good estiamtion properties from those.</p>
-<p>An important difference between this step and the previous one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general.</p>
+<p>In certain cases we might have information about our statistical population (e.g. census counts or proportions from official statistics). We can then use these to ‘correct’ our weights. This adjustment is called calibration and consists on finding a new set of weights that are as near as possible the input (<em>‘final’</em>) weights but reproduce the population information exactly. Valliant et al (2013) explain that using the previous <em>‘final’</em> weights as input for the calibration step allows us to ‘borrow’ good estiamtion properties from those.</p>
+<p>An important difference between this step and the one on non-response adjustment is that non-response adjustment requieres having information for both sampled respondents and non-respondents. Calibration only requieres information for respondents and population in general.</p>
 <p>Here we will calibrate weights using a ‘raking’ procedure (explained in Valliant el al 2013 page 358). Unlike other calibration methods, ‘raking’ does not requiere information on cross-classification categories but just marginal population counts. In other words, we do not need the information from crossing several variables (although we can use it if available). As explained by Lumley (2010, page 139), the process is very much iterative. It involves post-stratifying on each set of variables in turn, and repeating the process until the weights stop changing.</p>
-<p>The 7th ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document <a href="http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf">Documentation of ESS Post-Stratification Weights</a></p>
+<p>The 7th ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document: <a href="http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf">Documentation of ESS Post-Stratification Weights</a></p>
 <p>First we will compute the interaction between gender and age with the categories used for calibration in the ESS.</p>
 <pre class="r"><code>data %&lt;&gt;%
   mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99))) %&gt;%
@@ -1012,50 +1013,46 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
                                   list = gender_age_rec %in% c(&quot;Female_NA&quot;, &quot;Male_NA&quot;),
                                   values = NA ))
 
-#data %&gt;%
- # mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99)))
-
-#%&gt;%
- #        unite(col = gender_age_rec, gndr, agea_rec, remove = F) </code></pre>
-<p>The total number of weighted units in each of the categories we will use for calibration can be seen in the tables below<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>.</p>
+data %&lt;&gt;%
+  filter(!is.na(gender_age_rec), !is.na(region)) # see footnote in text below.</code></pre>
+<p>The total number of weighted units in each of the categories we will use for calibration can be seen in tables below<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>.</p>
 <pre class="r"><code>data %&gt;%
-  filter(!is.na(gender_age_rec)) %&gt;% # see footnote in text above.
   group_by(gender_age_rec) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
 <pre><code>## # A tibble: 6 x 2
 ##   gender_age_rec total_n_sample
 ##            &lt;chr&gt;          &lt;dbl&gt;
 ## 1 Female_(14,34]       278.3145
-## 2 Female_(34,54]       442.5399
+## 2 Female_(34,54]       441.9940
 ## 3 Female_(54,99]       465.4844
 ## 4   Male_(14,34]       256.5388
-## 5   Male_(34,54]       358.8823
-## 6   Male_(54,99]       427.4397</code></pre>
+## 5   Male_(34,54]       357.8829
+## 6   Male_(54,99]       426.7719</code></pre>
 <pre class="r"><code>data %&gt;%
-  filter(!is.na(gender_age_rec)) %&gt;%
   group_by(region) %&gt;%
   summarise(total_n_sample = sum(final.weight))</code></pre>
-<pre><code>## # A tibble: 13 x 2
+<pre><code>## # A tibble: 12 x 2
 ##                      region total_n_sample
 ##                      &lt;fctr&gt;          &lt;dbl&gt;
-##  1     North East (England)     108.773320
-##  2     North West (England)     255.854324
-##  3 Yorkshire and the Humber     165.794760
-##  4  East Midlands (England)     175.985529
-##  5  West Midlands (England)     177.854711
-##  6          East of England     182.018157
-##  7                   London     239.266038
-##  8     South East (England)     320.667253
-##  9     South West (England)     187.951935
-## 10                    Wales     127.377050
-## 11                 Scotland     222.207105
-## 12         Northern Ireland      63.236400
-## 13                       NA       2.213085</code></pre>
-<p>Now we import Eurostat data and recode it into ESS adjustment/post-stratification categories.(Explain exact source of data and computations from it)</p>
-<pre class="r"><code>age.gender.eurostat &lt;- read_delim(&quot;data/Eurostat/Agebygender_demo_pjangroup.csv&quot;, delim = &quot;,&quot;)
-
-age.gender.eurostat %&gt;%
-  write_csv(&quot;data/Eurostat/Agebygender_demo_pjangroup.csv&quot;)
+##  1     North East (England)       108.7733
+##  2     North West (England)       255.8543
+##  3 Yorkshire and the Humber       165.7948
+##  4  East Midlands (England)       175.9855
+##  5  West Midlands (England)       177.8547
+##  6          East of England       182.0182
+##  7                   London       239.2660
+##  8     South East (England)       320.6673
+##  9     South West (England)       187.9519
+## 10                    Wales       127.3771
+## 11                 Scotland       222.2071
+## 12         Northern Ireland        63.2364</code></pre>
+<p>Now we import Eurostat data<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a> and recode it into ESS adjustment/post-stratification categories.</p>
+<p>The data used in this guide are hosted in the <a href="https://github.com/JosepER/PPMI_how_to_weight_a_survey/tree/master/data/Eurostat">author’s github page</a> and the raw version can be checked in the following links:</p>
+<ul>
+<li><p><a href="https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Agebygender_demo_pjangroup.csv">Age and gender</a>.</p></li>
+<li><p><a href="https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Agebygender_demo_pjangroup.csv">Age by NUTS 2 regions</a>.</p></li>
+</ul>
+<pre class="r"><code>age.gender.eurostat &lt;- read.csv(text=getURL(&quot;https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Agebygender_demo_pjangroup.csv&quot;), header=T)
 
 age.gender.eurostat %&lt;&gt;%
   spread(key = Age, value = Value)
@@ -1068,8 +1065,8 @@ age.gender.eurostat %&lt;&gt;%
          `55to99` =  `From 55 to 59 years` + `From 60 to 64 years` + `From 65 to 69 years` +
            `From 70 to 74 years` + `75 years or over`) %&gt;%
   select(SEX, `15to34`:`55to99`)</code></pre>
-<pre class="r"><code>region.eurostat &lt;- read_delim(&quot;data/Eurostat/Nuts2byage.csv&quot;, delim = &quot;,&quot;)
-
+<pre class="r"><code>region.eurostat &lt;- read.csv(text=getURL(&quot;https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Nuts2byage.csv&quot;), header=T, stringsAsFactors = F)
+  
 region.eurostat %&lt;&gt;%
   gather(key = age, value = population, -Country) 
 
@@ -1078,8 +1075,7 @@ region.eurostat %&lt;&gt;%
   summarise(pop_sum = sum(population) )</code></pre>
 <p>I will now scale the Eurostat data to our sample size. The idea is to obtain the weights that make our sample proportions look like those in Eurostat. For these, we will calculate how many respondents in our sample should pertain to each category if we had Eurostat proportions. We will use our sample size based only on (weighted) completed observations in our post-stratification adjustment variables (age, gender and region).</p>
 <p>Total (weighted) observations in our sample with completed observations:</p>
-<pre class="r"><code>data.calibration &lt;- data %&gt;%  
-  filter(!is.na(agea_rec), !is.na(gndr), !is.na(region))
+<pre class="r"><code>data.calibration &lt;- data
 
 weighted.pop &lt;- sum(data.calibration$final.weight)
 
@@ -1218,7 +1214,7 @@ original.weights %&gt;% select(idno, pspwght)
   summarise(sserrors.myraked = sum(diff.myraked ^ 2),
             sserrors.essraked = sum(diff.essraked ^ 2))</code></pre>
 <pre><code>##   sserrors.myraked sserrors.essraked
-## 1          108.373          50.21895</code></pre>
+## 1          107.686          49.53199</code></pre>
 <p>ESS: ‘The post-stratification weights are obtained by adjusting the design weights in such a way that they will replicate the distribution of the cross-classification of age group, gender, and education in the population and the marginal distribution for region in the population. The population distributions for the adjusting variables were obtained from the European Union Labour Force Survey.’</p>
 <p>‘For most countries and rounds there is control data for gender, age, education and region. However, given the available control data it was not in all cases deemed appropriate to adjust the weighted sample data to the joint distribution of gender, age, education and region. Hence, it was decided not to use a straightforward post-stratication, but a raking procedure instead.’</p>
 <p>‘The raking procedure uses iterative post-stratication to match weighted marginal distributions of a sample to known population margins. The software used to calculate the weights is R (R Core Team, 2013) applying the survey package, (Lumley, 2013).’</p>
@@ -1243,6 +1239,7 @@ original.weights %&gt;% select(idno, pspwght)
 <li id="fn4"><p>With the exception of differences in class (0.389,0.421], which seem too large to be caused just by sampling error.<a href="#fnref4">↩</a></p></li>
 <li id="fn5"><p>Although it could also be the case that we are missing to explore some important interaction between predictors<a href="#fnref5">↩</a></p></li>
 <li id="fn6"><p>There is a small problem with 20 respondents for which we do not have information about their age. In order to keep thing simple this example we will ignore this issue.<a href="#fnref6">↩</a></p></li>
+<li id="fn7"><p>Eurostat data corresponds to tables and which give information on population by age and gender (<em>‘demo_pjangroup’</em>) and age and NUTS2 region (<em>‘demo_r_d2jan’</em>) on the 1st of January of 2014. Last updated on the 29th of April 2017.<a href="#fnref7">↩</a></p></li>
 </ol>
 </div>
 

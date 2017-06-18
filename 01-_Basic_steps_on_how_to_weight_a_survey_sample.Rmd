@@ -852,7 +852,7 @@ data %<>%
          final.weight = base.weight.scaled * nonresp.weight.scaled)
 
 rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
-   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg)
+   glm.cv.model, i, log.reg.m, predicted.lasso,predicted.log.tr, success.rate.glmnet, success.rate.logreg, train.correct.lasso, train.correct.logreg, data.nonresponse.model)
 
 ```
 
@@ -880,7 +880,7 @@ data %<>%
                                   values = NA ))
 
 data %<>%
-  fiter(!is.na(gender_age_rec), !is.na(region)) %>% # see footnote in text below.
+  filter(!is.na(gender_age_rec), !is.na(region)) # see footnote in text below.
 
 ```
 
@@ -889,20 +889,22 @@ The total number of weighted units in each of the categories we will use for cal
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
 data %>%
-  filter(!is.na(gender_age_rec)) 
   group_by(gender_age_rec) %>%
   summarise(total_n_sample = sum(final.weight))
 
 data %>%
-  filter(!is.na(gender_age_rec)) %>%
   group_by(region) %>%
   summarise(total_n_sample = sum(final.weight))
 
 ```
 
-Now we import Eurostat data^[Eurostat data corresponds to table *'demo_pjangroup'* which gives information on population by age and gender on the 1st of January of 2014. Last updated on the 29th of April 2017.] and recode it into ESS adjustment/post-stratification categories.
+Now we import Eurostat data^[Eurostat data corresponds to tables and which give information on population by age and gender (*'demo_pjangroup'*) and age and NUTS2 region (*'demo_r_d2jan'*) on the 1st of January of 2014. Last updated on the 29th of April 2017.] and recode it into ESS adjustment/post-stratification categories.
 
-The data used in this guide is hosted in the author's github page and can be checked as [raw data](https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Agebygender_demo_pjangroup.csv).
+The data used in this guide are hosted in the [author's github page](https://github.com/JosepER/PPMI_how_to_weight_a_survey/tree/master/data/Eurostat) and the raw version can be checked in the following links:
+
+* [Age and gender](https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Agebygender_demo_pjangroup.csv).
+
+* [Age by NUTS 2 regions](https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Agebygender_demo_pjangroup.csv).
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -925,10 +927,8 @@ age.gender.eurostat %<>%
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-region.eurostat <- read_delim("data/Eurostat/Nuts2byage.csv", delim = ",")
-
-"https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Nuts2byage.csv"
-
+region.eurostat <- read.csv(text=getURL("https://raw.githubusercontent.com/JosepER/PPMI_how_to_weight_a_survey/master/data/Eurostat/Nuts2byage.csv"), header=T, stringsAsFactors = F)
+  
 region.eurostat %<>%
   gather(key = age, value = population, -Country) 
 
@@ -944,8 +944,7 @@ Total (weighted) observations in our sample with completed observations:
 
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
-data.calibration <- data %>%  
-  filter(!is.na(agea_rec), !is.na(gndr), !is.na(region))
+data.calibration <- data
 
 weighted.pop <- sum(data.calibration$final.weight)
 
@@ -993,7 +992,6 @@ region.eurostat$region[region.eurostat$region == "South East (UK)"] <- "South Ea
 region.eurostat$region[region.eurostat$region == "South West (UK)"] <- "South West (England)"
 region.eurostat$region[region.eurostat$region == "West Midlands (UK)"] <- "West Midlands (England)"
 region.eurostat$region[region.eurostat$region == "Yorkshire and The Humber"] <- "Yorkshire and the Humber"
-
 
 ```
 
