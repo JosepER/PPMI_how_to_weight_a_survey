@@ -1106,7 +1106,7 @@ age.gender.eurostat</code></pre>
 ## 5 Female_(54,99]  417
 ## 6   Male_(54,99]  364</code></pre>
 <pre class="r"><code>rm(total.population)</code></pre>
-<p>Next we scale the</p>
+<p>Next we will do the same for Eurostat’s population data on NUTS 2 regions.</p>
 <pre class="r"><code>total.population &lt;- region.eurostat$pop_sum %&gt;%
   sum()
 
@@ -1124,6 +1124,7 @@ region.eurostat$region[region.eurostat$region == &quot;South East (UK)&quot;] &l
 region.eurostat$region[region.eurostat$region == &quot;South West (UK)&quot;] &lt;- &quot;South West (England)&quot;
 region.eurostat$region[region.eurostat$region == &quot;West Midlands (UK)&quot;] &lt;- &quot;West Midlands (England)&quot;
 region.eurostat$region[region.eurostat$region == &quot;Yorkshire and The Humber&quot;] &lt;- &quot;Yorkshire and the Humber&quot;</code></pre>
+<p>Here we will briefly test that we have the same categories in calibration variables of both survey and Eurostat datasets.</p>
 <pre class="r"><code>if( identical(region.eurostat$region %&gt;% unique %&gt;% sort, data.calibration$region %&gt;% as.character() %&gt;% unique %&gt;% sort) != T) {
     stop(&quot;Levels in region variable have to be the the same in the calibration and dataset used for population frequencies&quot;)
 }
@@ -1131,14 +1132,15 @@ region.eurostat$region[region.eurostat$region == &quot;Yorkshire and The Humber&
 if( identical(age.gender.eurostat$gender_age_rec %&gt;% unique %&gt;% sort, data.calibration$gender_age_rec %&gt;% as.character() %&gt;% unique %&gt;% sort) != T) {
     stop(&quot;Levels in age by gender categories variable have to be the the same in the calibration and dataset used for population frequencies&quot;)
 }</code></pre>
-<p>Now it’s time to calibrate!</p>
-<p>Explain a bit raking and stuff!</p>
-<p>I do it twice. Once to reproduce ESS weights and the other to compute my own weights which also include nr modelling.</p>
+<p>Now we will use the R <em>‘survey’</em> package (Lumley,T., 2010) to calibrate weights using the raking procedure. We will do this twice. First time we will compute the raked weighs using our <em>‘final.weight’</em> as an input. These contain information from both the base weights and our adjustment for non-response. In the second computation we will repeat the ESS design and use (only) the design/base weights as an input (variable <em>‘base.weight’</em>). This will allow us to compare our output weights with those computed by the experts behind the weighting procedure of the 7th ESS.</p>
+<p>The R <em>‘survey’</em> package works in a rather particular way<a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a>. It first requieres to specify the design of the survey with the <em>‘svydesign’</em> function. This creates an object of an adhoc class ‘survey.design’ that is passed to further procedures such as weights raking.</p>
+<p>The <em>‘svydesign’</em> function requieres an <em>‘ids’</em> argument with cluster ids. For the specific case of the 7th ESS in the UK, this would be the postal codes, which are the Primary Sampling Units (PSU). The procedures of the <em>‘survey’</em> package would then take into account these related responses when computing variances. However, here we will ignore this fact and pretend that all responses where independent of each other (we can do this by passing <em>~ 0</em> to the <em>‘ids’</em> argument). This should not affect the raking procedure. Next, we neet to specify the input weights in the <em>‘weights’</em> argument. Here we will pass the computed <em>final weights</em> and the <em>design/base</em> weights respectively to create both survey designs. Last, we need to specify the data with the survey respondses in the <em>‘data’</em> argument.<br />
+In this next chunk of code we will create these two objects which will correspond to the two explained computations of raked weights.</p>
 <pre class="r"><code>our.svydesign &lt;- svydesign(ids = ~ 0, weights = ~final.weight, data = data.calibration)
 
-ess.svydesign &lt;- svydesign(ids = ~ 0, weights = ~base.weight, data = data.calibration)
-
-our.raked &lt;- rake(our.svydesign, sample.margins = list(~region, ~gender_age_rec), 
+ess.svydesign &lt;- svydesign(ids = ~ 0, weights = ~base.weight, data = data.calibration)</code></pre>
+<p>The raking procedure can be done with the <em>‘rake’</em> function form the <em>‘survey’</em> package.</p>
+<pre class="r"><code>our.raked &lt;- rake(our.svydesign, sample.margins = list(~region, ~gender_age_rec), 
      population = list(region.eurostat, age.gender.eurostat))
 
 ess.raked &lt;- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec), 
@@ -1250,6 +1252,7 @@ original.weights %&gt;% select(idno, pspwght)
 <li id="fn5"><p>Although it could also be the case that we are missing to explore some important interaction between predictors<a href="#fnref5">↩</a></p></li>
 <li id="fn6"><p>There is a small problem with 20 respondents for which we do not have information about their age. In order to keep thing simple this example we will ignore this issue.<a href="#fnref6">↩</a></p></li>
 <li id="fn7"><p>Eurostat data corresponds to tables and which give information on population by age and gender (<em>‘demo_pjangroup’</em>) and age and NUTS2 region (<em>‘demo_r_d2jan’</em>) on the 1st of January of 2014. Last updated on the 29th of April 2017.<a href="#fnref7">↩</a></p></li>
+<li id="fn8"><p>It has its own requierements in terms of coding ‘grammar’. This is may be because it was programmed in 2003, almost 15 years ago! Hopefully other packages such as <em>‘srvyr’</em>, which at the time of writing this guide is still in version 0.2.1, will be able to take the content of the <em>‘survey’</em> package and adapt it to current scripting<a href="#fnref8">↩</a></p></li>
 </ol>
 </div>
 

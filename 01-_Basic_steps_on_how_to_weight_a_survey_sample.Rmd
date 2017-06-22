@@ -1019,7 +1019,8 @@ Now we will use the R *'survey'* package (Lumley,T., 2010) to calibrate weights 
 
 The R *'survey'* package works in a rather particular way^[It has its own requierements in terms of coding 'grammar'. This is may be because it was programmed in 2003, almost 15 years ago! Hopefully other packages such as *'srvyr'*, which at the time of writing this guide is still in version 0.2.1, will be able to take the content  of the *'survey'* package and adapt it to current scripting]. It first requieres to specify the design of the survey with the *'svydesign'* function. This creates an object of an adhoc class 'survey.design' that is passed to further procedures such as weights raking. 
 
-The *'svydesign'* function requieres an *'ids'* argument with cluster ids. For the specific case of the 7th ESS in the UK, this would be the postal codes, which are the Primary Sampling Units (PSU). The procedures of the *'survey'* package would then take into account these related responses when computing variances. However, here we will ignore this fact and pretend that all responses where independent of each other (we can do this by passing *~ 0* to the *'ids'* argument). This should not affect the raking procedure. Next, we neet to specify the input weights in the *'weights'* argument. Here we will pass the computed *final weights* and the *design/base* weights respectively to create both survey designs. Last, we need to specify the data with the survey respondses in the *'data'* argument.     
+The *'svydesign'* function requieres an *'ids'* argument with cluster ids. For the specific case of the 7th ESS in the UK, this would be the postal codes, which are the Primary Sampling Units (PSU). The procedures of the *'survey'* package would then take into account these related responses when computing variances. However, here we will ignore this fact and pretend that all responses where independent of each other (we can do this by passing *~ 0* to the *'ids'* argument). This should not affect the raking procedure. Next, we neet to specify the input weights in the *'weights'* argument. Here we will pass the computed *final weights* and the *design/base* weights respectively to create both survey designs. Last, we need to specify the data with the survey respondses in the *'data'* argument.
+
 In this next chunk of code we will create these two objects which will correspond to the two explained computations of raked weights.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
@@ -1030,7 +1031,7 @@ ess.svydesign <- svydesign(ids = ~ 0, weights = ~base.weight, data = data.calibr
 
 ```
 
-
+The raking procedure can be done with the *'rake'* function form the *'survey'* package. This function requieres to pass the previously computed survey design object as its first object (*'design'*). The second argument (*'sample.margins'*) is a list of formulas describing which variables are going to be used for calibration. Here we will pass a list with two formulas. The first one using the *'region'* variable and the second one the *'gender_age_rec'* variable which corresponds to the interaction/crosstabulation of gender and age categories. The third argument (*'population.margins'*) are the population counts for our calibration variables. Here we will pass our dataframes with the number of people that should be in each region/gender and age category if our sample followed population proportions.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -1042,7 +1043,6 @@ ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec)
 
 ```
 
-The raking procedure can be done with the *'rake'* function form the same package. 
 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
