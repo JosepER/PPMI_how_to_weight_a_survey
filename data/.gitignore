@@ -1,0 +1,5 @@
+sample.data.RDS
+paradata.RDS
+*.RDS
+*.csv
+*.sav
