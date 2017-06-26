@@ -1007,7 +1007,7 @@ rm(x.matrix, cv.success.glmnet, cv.success.log.reg, folds, formula.,
 <p>The 7th ESS used cross-classifications of age group and gender plus region (separately) to calibrate UK data. Here we will try to reproduce their calibration. For more information on ESS post-stratification weights see their document: <a href="http://www.europeansocialsurvey.org/docs/methodology/ESS_post_stratification_weights_documentation.pdf">Documentation of ESS Post-Stratification Weights</a></p>
 <p>First we will compute the interaction between gender and age with the categories used for calibration in the ESS.</p>
 <pre class="r"><code>data %&lt;&gt;%
-  mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99))) %&gt;%
+  mutate(agea_rec = cut(agea %&gt;% as.numeric(), breaks = c(14, 34, 54, 99))) %&gt;%
          unite(col = gender_age_rec, gndr, agea_rec, remove = F) %&gt;%
   mutate(gender_age_rec = replace(x = gender_age_rec, 
                                   list = gender_age_rec %in% c(&quot;Female_NA&quot;, &quot;Male_NA&quot;),

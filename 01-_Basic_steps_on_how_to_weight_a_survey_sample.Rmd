@@ -873,7 +873,7 @@ First we will compute the interaction between gender and age with the categories
 ```{r,  echo=TRUE, warning=FALSE, message=FALSE}
 
 data %<>%
-  mutate(agea_rec = cut(agea, breaks = c(14, 34, 54, 99))) %>%
+  mutate(agea_rec = cut(agea %>% as.numeric(), breaks = c(14, 34, 54, 99))) %>%
          unite(col = gender_age_rec, gndr, agea_rec, remove = F) %>%
   mutate(gender_age_rec = replace(x = gender_age_rec, 
                                   list = gender_age_rec %in% c("Female_NA", "Male_NA"),
