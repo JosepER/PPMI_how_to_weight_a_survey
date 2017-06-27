@@ -1043,7 +1043,7 @@ ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec)
 
 ```
 
-Then we collect the weights from the *'our.raked'* and *'ess.raked'* objects we just computed and we add them to our dataset.
+Then we collect the weights from the *'our.raked'* and *'ess.raked'* objects we just computed and we add them to our dataset for this section (the *'data.calibration'* dataframe).
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -1083,22 +1083,20 @@ region.eurostat)
 
 ```
 
-Now we can compare our computed final calibrated weights with those computed by the experts in charge of the 7th ESS.  
-
-EXPLAIN: Merge calibrated weights back to the original dataset. Use final weights (sampling * non-response weights) for those units with missings in calibration vars. 
+Now we can compare our computed final calibrated weights with those computed by the experts in charge of the weighting procedure of the 7th ESS. We will first join the calibrated weights with our original dataset of respondents.   
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 data %<>%
   left_join(data.calibration %>% select(idno, raked.weight, ess.raked.weight), by = "idno")
 
-data$raked.weight[is.na(data$raked.weight)] <- data$final.weight[is.na(data$raked.weight)]
-
-data$ess.raked.weight[is.na(data$ess.raked.weight)] <- data$final.weight[is.na(data$ess.raked.weight)]
+rm(data.calibration, age.gender.eurostat, region.eurostat)
 
 ```
 
-Compare ESS weight, my reproduction of ESS weight and my raked weights
+Here we compare our raked weight using the same methodology as they used in the 7th ESS (*'ess.raked.weight'*) and the weight included in the 7th ESS dataset (*'pspwght'*). Looking at the first 15 observations we see that they are, in most cases, very close. This means that we successfully reproduced the weights computed in the 7th ESS!. 
+
+For our estimations, we could also use the calibrated/raked weights we computed ourselves using the additional input of non-response weights (variable *'raked.weight'*). Using this input, our raking procedure would also 'borrow' good estimation properties from the non-response adjustment^[This idea of calibration weights 'borrowing' properties from input weights comes from Valliant et al. (2013, pag 231)].
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -1109,7 +1107,8 @@ original.weights %>% select(idno, pspwght)
 
 ```
 
-Obviously, my raked weights tend to be a bit further from ESS than those done only with base/sampling weights
+Here we try to compute a mesure of distance of our computed raked weights to those included in the original 7th ESS datafile. We can do this by calculating the sum of squared differences. As we would expect, we find that those computed using the ESS methodology tend to fall much closer to the ESS original weights than the weights which also include input from non-response estimations. It is important to stress again that this does not mean that closer weights are better than those including properties from non-response estimations.
+
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 left_join(
@@ -1118,28 +1117,11 @@ original.weights %>% select(idno, pspwght)
 ) %>%
   mutate(diff.myraked = pspwght-raked.weight,
          diff.essraked = pspwght-ess.raked.weight) %>%
-  summarise(sserrors.myraked = sum(diff.myraked ^ 2),
-            sserrors.essraked = sum(diff.essraked ^ 2))
+  summarise(ssdiff.myraked = sum(diff.myraked ^ 2),
+            ssdiff.essraked = sum(diff.essraked ^ 2))
 
 ```
 
-
-
-
-
-
-ESS: 'The post-stratification weights are obtained by adjusting the design weights in such a way that they will replicate the distribution of the cross-classification of age group, gender, and education in the population and the marginal distribution for region in the population. The population distributions for the adjusting variables were obtained from the European Union Labour Force Survey.'
-
-'For most countries and rounds there is control data for gender, age, education and region.
-However, given the available control data it was not in all cases deemed appropriate
-to adjust the weighted sample data to the joint distribution of gender, age, education
-and region. Hence, it was decided not to use a straightforward post-stratication, but
-a raking procedure instead.'
-
-'The raking procedure uses iterative post-stratication to
-match weighted marginal distributions of a sample to known population margins. The
-software used to calculate the weights is R (R Core Team, 2013) applying the survey
-package, (Lumley, 2013).'
 
 ## Step 4: Analysis of weight variability
 
