@@ -1,10 +1,9 @@
 ---
 title: "(Very) basic steps to weight a survey sample"
 author: "Josep Espasa Reig"
-subtitle: An explained example with R code - V0.2
+subtitle: An explained example with R code - V0.3
 output:
-  html_document:
-    theme: united
+  word_document:
     toc: yes
   html_notebook:
     theme: united
@@ -12,7 +11,8 @@ output:
   pdf_document:
     latex_engine: xelatex
     toc: yes
-  word_document:
+  html_document:
+    theme: united
     toc: yes
 ---
 
@@ -59,7 +59,7 @@ And the book accompaining the R 'survey' package:
 
   * Lumley,T. (2010) *Complex Surveys: A Guide to Analysis Using R*. New Jersey: John Wiley & Sons Inc.
 
-It might be also worth keeping an eye on the (still incipient) R package [*srvyr*](https://cran.r-project.org/web/packages/srvyr/index.html), developed and mantained by Greg Freedman Ellis.
+It might be also worth keeping an eye on the (still incipient) R package [*srvyr*](https://cran.r-project.org/web/packages/srvyr/index.html), developed and maintained by Greg Freedman Ellis.
 
 Note: This guide focuses on surveys based on 'probability sample'. These are surveys where all units in our statistical population have a chance of being selected and the probability of selection is known to the researcher. A brief note on how to weight non-probability samples is included at the end of the guide. 
 
@@ -97,7 +97,7 @@ For this guide we will use the following 7th ESS datafiles in SPSS ('.sav') form
   * [the data from Contact forms, edition 2.1](http://www.europeansocialsurvey.org/download.html?file=ESS7CFe02_1&y=2014), which provides information about the process of data collection (e.g. number of times the person was approached for a response, ID of interviewer in each approach, conditions of the house/area where the potential respondent lived.). We will call this data the *'paradata'* of the survey;
   * [the integrated interviewer data file, edition2.1](http://www.europeansocialsurvey.org/download.html?file=ESS7INTe02_1&y=2014). These are the responses to the survey. 
 
-The following sections explain data import, selection, merging and recoding. Readers who are not interested in technical details about datasets can skip them and jump directly into [exploration and presention of the data](#exploring and presenting the dataset)
+The following sections explain data import, selection, merging and recoding. Readers who are not interested in technical details about datasets can skip them and jump directly into [exploration and presentation of the data](#exploring and presenting the dataset)
 
 #### Import data
 
@@ -1094,7 +1094,7 @@ rm(data.calibration, age.gender.eurostat, region.eurostat)
 
 ```
 
-Here we compare our raked weight using the same methodology as they used in the 7th ESS (*'ess.raked.weight'*) and the weight included in the 7th ESS dataset (*'pspwght'*). Looking at the first 15 observations we see that they are, in most cases, very close. This means that we successfully reproduced the weights computed in the 7th ESS!. 
+Here we compare our raked weight using the same methodology as they used in the 7th ESS (*'ess.raked.weight'*) and the weight included in the 7th ESS dataset (*'pspwght'*). Looking at the first 15 observations we see that they are, in most cases, very close. This means that we successfully reproduced the weights computed in the 7th ESS!
 
 For our estimations, we could also use the calibrated/raked weights we computed ourselves using the additional input of non-response weights (variable *'raked.weight'*). Using this input, our raking procedure would also 'borrow' good estimation properties from the non-response adjustment^[This idea of calibration weights 'borrowing' properties from input weights comes from Valliant et al. (2013, pag 231)].
 

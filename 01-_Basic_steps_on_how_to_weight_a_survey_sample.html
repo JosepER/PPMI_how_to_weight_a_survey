@@ -1145,33 +1145,36 @@ ess.svydesign &lt;- svydesign(ids = ~ 0, weights = ~base.weight, data = data.cal
 
 ess.raked &lt;- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec), 
      population = list(region.eurostat, age.gender.eurostat))</code></pre>
+<p>Then we collect the weights from the <em>‘our.raked’</em> and <em>‘ess.raked’</em> objects we just computed and we add them to our dataset for this section (the <em>‘data.calibration’</em> dataframe).</p>
 <pre class="r"><code>raked.weight &lt;- our.raked$postStrata[[1]][[1]] %&gt;% attributes() %&gt;% .[[&quot;weights&quot;]]
 
 ess.raked.weight &lt;- ess.raked$postStrata[[1]][[1]] %&gt;% attributes() %&gt;% .[[&quot;weights&quot;]]
 
 data.calibration$ess.raked.weight &lt;- ess.raked.weight
 
-data.calibration$raked.weight &lt;- raked.weight</code></pre>
-<p>Test calibrated weights</p>
-<p>Age by gender</p>
+data.calibration$raked.weight &lt;- raked.weight
+
+rm(raked.weight, ess.raked.weight)</code></pre>
+<p>Next we compare the frequencies of weighted observations in our sample with those we would obtain if our dataset had the same shares of age, gender and region categories as official data (i.e. the data inputed to our calibration procedure). If our calibration is successful, the frequencies should be almost the same. Here we will do this test using our calibration procedure which included design and non-response weights as an input (i.e. calibration object <em>‘raked.weight’</em>). The following chunk of code shows the results for age and gender categories.</p>
 <pre class="r"><code>left_join(
 data.calibration %&gt;%
   group_by(gender_age_rec) %&gt;%
-  summarise(calibrated.sample.pop = sum(raked.weight)),
+  summarise(calibrated.sample.pop = sum(raked.weight) %&gt;% round(1)),
 age.gender.eurostat)</code></pre>
 <pre><code>## # A tibble: 6 x 3
 ##   gender_age_rec calibrated.sample.pop  Freq
 ##            &lt;chr&gt;                 &lt;dbl&gt; &lt;dbl&gt;
-## 1 Female_(14,34]              351.6823   352
-## 2 Female_(34,54]              371.6672   372
-## 3 Female_(54,99]              416.6314   417
-## 4   Male_(14,34]              357.6600   358
-## 5   Male_(34,54]              363.6794   364
-## 6   Male_(54,99]              363.6797   364</code></pre>
+## 1 Female_(14,34]                 351.7   352
+## 2 Female_(34,54]                 371.7   372
+## 3 Female_(54,99]                 416.6   417
+## 4   Male_(14,34]                 357.7   358
+## 5   Male_(34,54]                 363.7   364
+## 6   Male_(54,99]                 363.7   364</code></pre>
+<p>Here we show the compared frequencies for regions. Both comparisons allow us to see that calibration performed as expected and weighted frequencies reflect population proportions from official statistics.</p>
 <pre class="r"><code>left_join(
 data.calibration %&gt;%
   group_by(region) %&gt;%
-  summarise(calibrated.sample.pop = sum(raked.weight)),
+  summarise(calibrated.sample.pop = sum(raked.weight) %&gt;% round(1)),
 region.eurostat)</code></pre>
 <pre><code>## # A tibble: 12 x 3
 ##                      region calibrated.sample.pop  Freq
@@ -1188,14 +1191,13 @@ region.eurostat)</code></pre>
 ## 10                    Wales                   114   114
 ## 11                 Scotland                   176   176
 ## 12         Northern Ireland                    62    62</code></pre>
-<p>EXPLAIN: Merge calibrated weights back to the original dataset. Use final weights (sampling * non-response weights) for those units with missings in calibration vars.</p>
+<p>Now we can compare our computed final calibrated weights with those computed by the experts in charge of the weighting procedure of the 7th ESS. We will first join the calibrated weights with our original dataset of respondents.</p>
 <pre class="r"><code>data %&lt;&gt;%
   left_join(data.calibration %&gt;% select(idno, raked.weight, ess.raked.weight), by = &quot;idno&quot;)
 
-data$raked.weight[is.na(data$raked.weight)] &lt;- data$final.weight[is.na(data$raked.weight)]
-
-data$ess.raked.weight[is.na(data$ess.raked.weight)] &lt;- data$final.weight[is.na(data$ess.raked.weight)]</code></pre>
-<p>Compare ESS weight, my reproduction of ESS weight and my raked weights</p>
+rm(data.calibration, age.gender.eurostat, region.eurostat)</code></pre>
+<p>Here we compare our raked weight using the same methodology as they used in the 7th ESS (<em>‘ess.raked.weight’</em>) and the weight included in the 7th ESS dataset (<em>‘pspwght’</em>). Looking at the first 15 observations we see that they are, in most cases, very close. This means that we successfully reproduced the weights computed in the 7th ESS!.</p>
+<p>For our estimations, we could also use the calibrated/raked weights we computed ourselves using the additional input of non-response weights (variable <em>‘raked.weight’</em>). Using this input, our raking procedure would also ‘borrow’ good estimation properties from the non-response adjustment<a href="#fn9" class="footnoteRef" id="fnref9"><sup>9</sup></a>.</p>
 <pre class="r"><code>left_join(
 data %&gt;% select(idno, raked.weight, ess.raked.weight),
 original.weights %&gt;% select(idno, pspwght)
@@ -1216,20 +1218,17 @@ original.weights %&gt;% select(idno, pspwght)
 ## 13 100000025    0.5406270        0.4424130 0.4768728
 ## 14 100000030    0.9304049        1.0735789 1.0272274
 ## 15 100000031    1.2475568        0.9753477 0.9355472</code></pre>
-<p>Obviously, my raked weights tend to be a bit further from ESS than those done only with base/sampling weights</p>
+<p>Here we try to compute a mesure of distance of our computed raked weights to those included in the original 7th ESS datafile. We can do this by calculating the sum of squared differences. As we would expect, we find that those computed using the ESS methodology tend to fall much closer to the ESS original weights than the weights which also include input from non-response estimations. It is important to stress again that this does not mean that closer weights are better than those including properties from non-response estimations.</p>
 <pre class="r"><code>left_join(
 data %&gt;% select(idno, raked.weight, ess.raked.weight),
 original.weights %&gt;% select(idno, pspwght)
 ) %&gt;%
   mutate(diff.myraked = pspwght-raked.weight,
          diff.essraked = pspwght-ess.raked.weight) %&gt;%
-  summarise(sserrors.myraked = sum(diff.myraked ^ 2),
-            sserrors.essraked = sum(diff.essraked ^ 2))</code></pre>
-<pre><code>##   sserrors.myraked sserrors.essraked
-## 1          107.686          49.53199</code></pre>
-<p>ESS: ‘The post-stratification weights are obtained by adjusting the design weights in such a way that they will replicate the distribution of the cross-classification of age group, gender, and education in the population and the marginal distribution for region in the population. The population distributions for the adjusting variables were obtained from the European Union Labour Force Survey.’</p>
-<p>‘For most countries and rounds there is control data for gender, age, education and region. However, given the available control data it was not in all cases deemed appropriate to adjust the weighted sample data to the joint distribution of gender, age, education and region. Hence, it was decided not to use a straightforward post-stratication, but a raking procedure instead.’</p>
-<p>‘The raking procedure uses iterative post-stratication to match weighted marginal distributions of a sample to known population margins. The software used to calculate the weights is R (R Core Team, 2013) applying the survey package, (Lumley, 2013).’</p>
+  summarise(ssdiff.myraked = sum(diff.myraked ^ 2),
+            ssdiff.essraked = sum(diff.essraked ^ 2))</code></pre>
+<pre><code>##   ssdiff.myraked ssdiff.essraked
+## 1        107.686        49.53199</code></pre>
 </div>
 <div id="step-4-analysis-of-weight-variability" class="section level2">
 <h2>Step 4: Analysis of weight variability</h2>
@@ -1253,6 +1252,7 @@ original.weights %&gt;% select(idno, pspwght)
 <li id="fn6"><p>There is a small problem with 20 respondents for which we do not have information about their age. In order to keep thing simple this example we will ignore this issue.<a href="#fnref6">↩</a></p></li>
 <li id="fn7"><p>Eurostat data corresponds to tables and which give information on population by age and gender (<em>‘demo_pjangroup’</em>) and age and NUTS2 region (<em>‘demo_r_d2jan’</em>) on the 1st of January of 2014. Last updated on the 29th of April 2017.<a href="#fnref7">↩</a></p></li>
 <li id="fn8"><p>It has its own requierements in terms of coding ‘grammar’. This is may be because it was programmed in 2003, almost 15 years ago! Hopefully other packages such as <em>‘srvyr’</em>, which at the time of writing this guide is still in version 0.2.1, will be able to take the content of the <em>‘survey’</em> package and adapt it to current scripting<a href="#fnref8">↩</a></p></li>
+<li id="fn9"><p>This idea of calibration weights ‘borrowing’ properties from input weights comes from Valliant et al. (2013, pag 231)<a href="#fnref9">↩</a></p></li>
 </ol>
 </div>
 
