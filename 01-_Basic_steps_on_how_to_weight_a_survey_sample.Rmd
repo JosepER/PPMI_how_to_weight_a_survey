@@ -1043,7 +1043,7 @@ ess.raked <- rake(ess.svydesign, sample.margins = list(~region, ~gender_age_rec)
 
 ```
 
-
+Then we collect the weights from the *'our.raked'* and *'ess.raked'* objects we just computed and we add them to our dataset.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
@@ -1055,31 +1055,35 @@ data.calibration$ess.raked.weight <- ess.raked.weight
 
 data.calibration$raked.weight <- raked.weight
 
+rm(raked.weight, ess.raked.weight)
+
 ```
 
-Test calibrated weights 
-
-Age by gender
+Next we compare the frequencies of weighted observations in our sample with those we would obtain if our dataset had the same shares of age, gender and region categories as official data (i.e. the data inputed to our calibration procedure). If our calibration is successful, the frequencies should be almost the same. Here we will do this test using our calibration procedure which included design and non-response weights as an input (i.e. calibration object *'raked.weight'*). The following chunk of code shows the results for age and gender categories.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 left_join(
 data.calibration %>%
   group_by(gender_age_rec) %>%
-  summarise(calibrated.sample.pop = sum(raked.weight)),
+  summarise(calibrated.sample.pop = sum(raked.weight) %>% round(1)),
 age.gender.eurostat)
 
 ```
+
+Here we show the compared frequencies for regions. Both comparisons allow us to see that calibration performed as expected and weighted frequencies reflect population proportions from official statistics.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 
 left_join(
 data.calibration %>%
   group_by(region) %>%
-  summarise(calibrated.sample.pop = sum(raked.weight)),
+  summarise(calibrated.sample.pop = sum(raked.weight) %>% round(1)),
 region.eurostat)
 
 ```
+
+Now we can compare our computed final calibrated weights with those computed by the experts in charge of the 7th ESS.  
 
 EXPLAIN: Merge calibrated weights back to the original dataset. Use final weights (sampling * non-response weights) for those units with missings in calibration vars. 
 
